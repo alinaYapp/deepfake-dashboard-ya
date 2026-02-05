@@ -28,12 +28,12 @@ export default function DashboardPage() {
   const getTabInfo = () => {
     if (activeTab === "overview") {
       return {
-        title: "Overview",
-        description: "Monitor deepfake detection metrics and recent checks",
+        title: "Dashboard Overview",
+        description: "Key metrics and recent activity for deepfake detection",
       }
     }
     return {
-      title: "Analyze Content",
+      title: "Content Analysis",
       description: "Upload and analyze content for deepfake detection",
     }
   }
