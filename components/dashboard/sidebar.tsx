@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { Zap, LayoutDashboard, ScanSearch, Settings, HelpCircle } from "lucide-react"
+import { Zap, LayoutDashboard, ScanSearch, FileText, Settings, HelpCircle } from "lucide-react"
 
 interface SidebarProps {
   activeTab: string
@@ -11,6 +11,7 @@ interface SidebarProps {
 const menuItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "analyze", label: "Analyze", icon: ScanSearch },
+  { id: "report", label: "Report", icon: FileText },
 ]
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {

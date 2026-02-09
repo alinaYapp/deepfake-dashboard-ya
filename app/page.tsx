@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
 import { OverviewTab } from "@/components/dashboard/tabs/overview-tab"
 import { AnalyzeTabs } from "@/components/dashboard/tabs/analyze-tabs"
+import { ReportView } from "@/components/report/report-view"
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -20,6 +21,8 @@ export default function DashboardPage() {
       case "audio":
       case "streaming":
         return <AnalyzeTabs initialTab={activeTab === "analyze" ? "video" : activeTab} />
+      case "report":
+        return <ReportView />
       default:
         return <OverviewTab />
     }
@@ -30,6 +33,12 @@ export default function DashboardPage() {
       return {
         title: "Dashboard Overview",
         description: "Key metrics and recent activity for deepfake detection",
+      }
+    }
+    if (activeTab === "report") {
+      return {
+        title: "Detection Report",
+        description: "Detailed deepfake detection analysis report",
       }
     }
     return {
