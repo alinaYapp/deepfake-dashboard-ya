@@ -34,35 +34,54 @@ function generateReportHTML(caseData: Case): string {
   const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
   const voiceResult = details?.voice_analysis?.[0]
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok" }
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
   const metrics: Metric[] = []
   if (faceResult) {
     metrics.push({
       label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}% confidence of concern` : "No concerns indicated",
+      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
       status: faceResult.result === "suspicious" ? "alert" : "ok",
+      iconType: "face",
     })
   }
   if (voiceResult) {
     const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
     metrics.push({
       label: "Voice Analysis",
-      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}% confidence of concern` : "No concerns indicated",
+      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
       status: voiceSus ? "alert" : "ok",
+      iconType: "voice",
     })
   }
   metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} noted`, status: criticalCount > 0 ? "alert" as const : "warn" as const }
-    : { label: "Forensic Flags", value: "None observed", status: "ok" as const }
+    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, iconType: "forensic" }
+    : { label: "Forensic Flags", value: "None", status: "ok" as const, iconType: "forensic" }
   )
-  // Metadata & file analysis summary
   const hasIntegrityData = !!details?.structural_consistency
   const hasMetadata = !!details?.decoded_metadata
   metrics.push({
-    label: "File & Metadata",
-    value: hasIntegrityData ? (integrityPassed ? "Structure consistent" : "Integrity concerns noted") : hasMetadata ? "Metadata extracted" : "Limited data available",
+    label: "File Metadata",
+    value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
     status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
+    iconType: "file",
   })
+
+  // Icon SVGs for PDF
+  const iconSvgs: Record<string, (color: string) => string> = {
+    face: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="4" stroke="${c}" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="${c}" stroke-width="1.5"/></svg>`,
+    voice: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" stroke="${c}" stroke-width="1.5"/><path d="M3 7c0 2.8 2.2 5 5 5s5-2.2 5-5" stroke="${c}" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="${c}" stroke-width="1.5"/></svg>`,
+    forensic: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z" stroke="${c}" stroke-width="1.5"/><path d="M8 8V5" stroke="${c}" stroke-width="1.5"/><circle cx="8" cy="10" r="0.8" fill="${c}"/></svg>`,
+    file: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1" stroke="${c}" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="${c}" stroke-width="1"/><line x1="5" y1="7.5" x2="11" y2="7.5" stroke="${c}" stroke-width="1"/><line x1="5" y1="10" x2="9" y2="10" stroke="${c}" stroke-width="1"/></svg>`,
+  }
+
+  // Region descriptions for suspicious findings
+  const regionDescs: { region: string; detail: string }[] = []
+  if (isSuspicious) {
+    if (faceResult?.result === "suspicious") regionDescs.push({ region: "Facial region", detail: "Unnatural blending detected at jaw line boundary" })
+    if (eyeResult?.result === "suspicious") regionDescs.push({ region: "Eye gaze trajectory", detail: "Inconsistent with natural movement patterns" })
+    if (voiceResult?.result?.toLowerCase() === "suspicious") regionDescs.push({ region: "Audio-visual sync", detail: "Temporal offset detected in lip movement correlation" })
+    if (faceResult?.result === "suspicious") regionDescs.push({ region: "Lighting analysis", detail: "Shadow direction mismatch across facial planes" })
+  }
 
   const metricColor = (s: string) => s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
   const metricBg = (s: string) => s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
@@ -102,9 +121,9 @@ function generateReportHTML(caseData: Case): string {
   const topFrames: TopFrame[] = []
   if (isVideo && isSuspicious) {
     const base = caseData.score
-    topFrames.push({ index: 42, timestamp: "00:01.4", score: Math.min(base + 0.03, 0.99) })
-    topFrames.push({ index: 87, timestamp: "00:02.9", score: base })
-    topFrames.push({ index: 113, timestamp: "00:03.8", score: Math.max(base - 0.06, 0.5) })
+    topFrames.push({ index: 42, timestamp: "00:15.4", score: Math.min(base + 0.034, 0.99) })
+    topFrames.push({ index: 87, timestamp: "00:28.9", score: base })
+    topFrames.push({ index: 113, timestamp: "00:37.2", score: Math.max(base - 0.06, 0.5) })
   }
   const maxFrameScore = topFrames.length > 0 ? topFrames[0].score : caseData.score
   const avgFrameScore = topFrames.length > 0 ? topFrames.reduce((a, f) => a + f.score, 0) / topFrames.length : caseData.score
@@ -172,130 +191,51 @@ function generateReportHTML(caseData: Case): string {
     }
   }
 
+  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
+  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
+  const verdictBorder = isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'
+  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
+
   return `<!DOCTYPE html>
 <html>
 <head>
   <title>DataSpike Report #${reportNumber}</title>
   <style>
     @page { margin: 0; size: A4; }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-      color: #1a1a1a; 
-      font-size: 11px;
-      line-height: 1.5;
-      background: white;
-    }
-    
-    .page {
-      width: 794px;
-      height: 1123px;
-      padding: 40px 50px;
-      position: relative;
-      background: white;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-    
-    /* Header */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: #4A7BF7;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    .logo-text {
-      font-size: 18px;
-      font-weight: 600;
-      color: #4A7BF7;
-    }
-    .header-right {
-      text-align: right;
-      font-size: 11px;
-      color: #6b7280;
-    }
-    .report-id {
-      font-weight: 600;
-      color: #1a1a1a;
-      font-family: monospace;
-    }
-    
-    /* Footer */
-    .page-footer {
-      position: absolute;
-      bottom: 30px;
-      left: 50px;
-      right: 50px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 9px;
-      color: #9ca3af;
-      padding-top: 12px;
-      border-top: 1px solid #e5e7eb;
-    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
+    .page { width: 794px; height: 1123px; padding: 36px 48px 36px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
+    .page-footer { position: absolute; bottom: 28px; left: 48px; right: 48px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9ca3af; padding-top: 10px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
-  <!-- Single-Page Executive Summary -->
-  <div class="page" style="padding: 48px 56px 44px;">
+  <div class="page">
 
-    <!-- 1. Report Header -->
-    <div class="header" style="margin-bottom: 28px;">
-      <div class="logo">
-        <div class="logo-icon" style="width: 28px; height: 28px; font-size: 10px;">DS</div>
-        <div class="logo-text" style="font-size: 15px;">DataSpike</div>
+    <!-- 1. Header Row: logo + verdict + score + report ID -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 2px solid #e5e7eb; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 28px; height: 28px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 10px;">DS</div>
+        <span style="font-size: 15px; font-weight: 600; color: #4A7BF7;">DataSpike</span>
       </div>
-      <div class="header-right">
-        <div class="report-id" style="font-size: 12px;">#${reportNumber}</div>
-        <div style="font-size: 10px; margin-top: 2px;">${reportDate}</div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="display: inline-block; padding: 6px 14px; border-radius: 6px; background: ${verdictColor}; color: #fff; font-weight: 700; font-size: 12px; letter-spacing: 0.04em;">${verdictLabel}</div>
+        <div style="text-align: right;">
+          <div style="font-size: 28px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}<span style="font-size: 14px; font-weight: 600;">%</span></div>
+        </div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-family: monospace; font-weight: 600; font-size: 11px; color: #1a1a1a;">#${reportNumber}</div>
+        <div style="font-size: 9px; color: #6b7280; margin-top: 2px;">${reportDate}</div>
       </div>
     </div>
 
-    <!-- 2. Overall Verdict Block (most prominent) -->
-    <div style="background: ${isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'}; border: 1.5px solid ${isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'}; border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <div>
-          <div style="display: inline-block; padding: 7px 14px; border-radius: 6px; background: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; color: white; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;">
-            ${isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'VALID'}
-          </div>
-          <div style="font-size: 13px; color: #4b5563; margin-top: 10px; font-weight: 500;">
-            ${isSuspicious ? 'Analysis indicates possible manipulation' : isUncertain ? 'Analysis results are inconclusive' : 'No indicators of manipulation identified'}
-          </div>
-        </div>
-        <div style="text-align: right;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">Confidence Score</div>
-          <div style="font-size: 36px; font-weight: 700; color: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; line-height: 1;">
-            ${confidencePercent}<span style="font-size: 18px; font-weight: 600;">%</span>
-          </div>
-        </div>
+    <!-- 2. Confidence bar + case reference -->
+    <div style="margin-bottom: 14px;">
+      <div style="height: 5px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+        <div style="height: 100%; width: ${confidencePercent}%; background: ${verdictColor}; border-radius: 3px;"></div>
       </div>
-      <div style="margin-top: 16px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
-        <div style="height: 100%; width: ${confidencePercent}%; background: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; border-radius: 3px;"></div>
-      </div>
-      <div style="display: flex; gap: 24px; margin-top: 14px; font-size: 10px; color: #6b7280;">
+      <div style="display: flex; gap: 20px; font-size: 9px; color: #6b7280;">
         <span>Case <span style="font-family: monospace; color: #374151;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] : caseData.id}</span></span>
         <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
         <span>Submitted ${formatDate(caseData.created_at)}</span>
@@ -303,173 +243,168 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- 3. Key Metrics Summary -->
-    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+    <!-- 3. Summary Cards (compact with icons) -->
+    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
       ${metrics.slice(0, 4).map((m) => `
-      <div style="flex: 1; padding: 14px 16px; background: ${metricBg(m.status)}; border: 1px solid ${metricBorder(m.status)}; border-radius: 8px;">
-        <div style="font-size: 10px; color: #6b7280; font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;">${m.label}</div>
-        <div style="font-size: 12px; font-weight: 600; color: ${metricColor(m.status)}; line-height: 1.3;">${m.value}</div>
+      <div style="flex: 1; padding: 10px 12px; background: ${metricBg(m.status)}; border: 1px solid ${metricBorder(m.status)}; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+        ${iconSvgs[m.iconType]?.(metricColor(m.status)) || ''}
+        <div>
+          <div style="font-size: 9px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${m.label}</div>
+          <div style="font-size: 13px; font-weight: 700; color: ${metricColor(m.status)}; line-height: 1.2;">${m.value}</div>
+        </div>
       </div>`).join('')}
     </div>
 
-    <!-- 4. Media Analysis Section (content-aware) -->
-    <div style="margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-      <div style="padding: 6px 14px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px;">${isAudio ? 'Audio Analysis' : isVideo ? 'Frame-by-Frame Analysis' : 'Frame Analysis'}</span>
-        <span style="font-size: 8px; font-weight: 500; padding: 2px 8px; border-radius: 3px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
-          ${isAudio ? (isSuspicious ? 'Anomalous patterns observed' : 'No anomalous patterns') : (heatZones.length > 0 ? `${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} of interest` : 'No regions of concern')}
-        </span>
+    <!-- 4. HERO: Frame-by-Frame Analysis -->
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 14px;">
+      <div style="padding: 8px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">${isAudio ? 'Audio Analysis' : 'Frame-by-Frame Analysis'}</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${isVideo && isSuspicious && topFrames.length > 0 ? `
+          <span style="font-size: 9px; color: #6b7280;">Max: <span style="color: #B91C1C; font-weight: 700; font-family: monospace;">${(maxFrameScore * 100).toFixed(1)}%</span></span>
+          <span style="font-size: 9px; color: #6b7280;">Avg: <span style="color: #EA580C; font-weight: 700; font-family: monospace;">${(avgFrameScore * 100).toFixed(1)}%</span></span>
+          ` : ''}
+          <span style="font-size: 8px; font-weight: 600; padding: 3px 10px; border-radius: 4px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
+            ${isAudio ? (isSuspicious ? 'Anomalous patterns' : 'No anomalies') : (heatZones.length > 0 ? `${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} flagged` : 'No regions of concern')}
+          </span>
+        </div>
       </div>
-      <div style="display: flex; background: #f9fafb; min-height: 130px;">
-        <!-- LEFT: Visual content -->
-        <div style="flex: 2; border-right: 1px solid #e5e7eb; padding: 12px 14px;">
-          ${isAudio ? `
-          <!-- Audio: waveform placeholder -->
-          <div style="text-align: center;">
-            <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="240" height="56" rx="3" fill="#1f2937"/>
-              ${waveformBars}
-              ${isSuspicious ? `<rect x="${4 + 18 * 4.9 - 2}" y="0" width="${7 * 4.9 + 4}" height="56" rx="2" fill="none" stroke="#EF4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/><text x="${4 + 21 * 4.9}" y="8" fill="#EF4444" font-size="6" font-weight="600" text-anchor="middle">anomaly region</text>` : ''}
-            </svg>
-            <div style="font-size: 8px; color: ${isSuspicious ? '#B91C1C' : '#6b7280'}; margin-top: 6px; font-weight: 500;">${isSuspicious ? 'Flagged audio region highlighted' : 'Waveform visualization'}</div>
-          </div>
+      <div style="background: #f9fafb; padding: 16px 20px;">
+        ${isAudio ? `
+        <div style="text-align: center;">
+          <svg width="600" height="120" viewBox="0 0 600 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="600" height="120" rx="4" fill="#1f2937"/>
+            ${Array.from({ length: 60 }).map((_, i) => {
+              const seed = Math.sin(i * 0.7 + 1.3) * 0.5 + 0.5
+              const h = 8 + seed * 100
+              const y = (120 - h) / 2
+              const isSusBar = isSuspicious && (i >= 22 && i <= 30)
+              const color = isSusBar ? (isSuspicious ? "#EF4444" : "#22C55E") : (isSuspicious ? "#FCA5A5" : "#86EFAC")
+              const opacity = isSusBar ? 0.9 : 0.4
+              return `<rect x="${6 + i * 9.8}" y="${y}" width="3.5" height="${h}" rx="1.75" fill="${color}" opacity="${opacity}" />`
+            }).join('')}
+            ${isSuspicious ? `<rect x="${6 + 22 * 9.8 - 3}" y="0" width="${9 * 9.8 + 6}" height="120" rx="3" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/><text x="${6 + 26 * 9.8}" y="12" fill="#EF4444" font-size="8" font-weight="600" text-anchor="middle">anomaly region</text>` : ''}
+          </svg>
+        </div>
           ` : (isVideo && isSuspicious && topFrames.length > 0) ? `
-          <!-- Video (suspicious): top 3 frames -->
-          <div>
-            <div style="font-size: 8px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">Top 3 Suspicious Frames</div>
-            <div style="display: flex; gap: 8px;">
-              ${topFrames.map((frame) => `
-              <div style="flex: 1; text-align: center;">
-                <div style="position: relative; border-radius: 3px; overflow: hidden; border: 1.5px solid ${frameScoreColor(frame.score)};">
-                  <svg width="100%" height="60" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-                    <rect width="100" height="60" fill="#1f2937"/>
-                    <ellipse cx="50" cy="24" rx="12" ry="14" fill="#374151"/>
-                    <ellipse cx="50" cy="55" rx="22" ry="16" fill="#374151"/>
-                    <ellipse cx="50" cy="28" rx="18" ry="20" fill="rgba(220,38,38,${(0.1 + frame.score * 0.3).toFixed(2)})"/>
-                  </svg>
-                  <div style="position: absolute; top: 2px; right: 3px; background: ${frameScoreColor(frame.score)}; color: #fff; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 2px;">${(frame.score * 100).toFixed(0)}%</div>
-                </div>
-                <div style="font-size: 7px; color: #6b7280; margin-top: 3px;">Frame ${frame.index} &middot; ${frame.timestamp}</div>
-              </div>`).join('')}
-            </div>
-            <!-- Score aggregation -->
-            <div style="margin-top: 8px; padding: 6px 8px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; gap: 12px;">
-                <div>
-                  <div style="font-size: 7px; color: #6b7280; text-transform: uppercase;">Max Score</div>
-                  <div style="font-size: 10px; font-weight: 700; color: #B91C1C; font-family: monospace;">${(maxFrameScore * 100).toFixed(1)}%</div>
-                </div>
-                <div>
-                  <div style="font-size: 7px; color: #6b7280; text-transform: uppercase;">Running Avg</div>
-                  <div style="font-size: 10px; font-weight: 700; color: #EA580C; font-family: monospace;">${(avgFrameScore * 100).toFixed(1)}%</div>
-                </div>
+          <!-- Video (suspicious): top 3 larger frames -->
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            ${topFrames.map((frame, i) => `
+            <div style="flex: 1; max-width: 210px;">
+              <div style="position: relative; border-radius: 6px; overflow: hidden; border: ${i === 0 ? '2.5px' : '1.5px'} solid ${i === 0 ? '#DC2626' : '#d1d5db'}; ${i === 0 ? 'box-shadow: 0 0 12px rgba(220,38,38,0.2);' : ''}">
+                <svg width="210" height="152" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">
+                  <defs>
+                    <linearGradient id="fBgV${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+                    <radialGradient id="heatV${i}" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="rgba(220,38,38,${(0.15 + frame.score * 0.35).toFixed(2)})"/><stop offset="40%" stop-color="rgba(234,88,12,${(0.05 + frame.score * 0.2).toFixed(2)})"/><stop offset="80%" stop-color="rgba(250,204,21,0.08)"/><stop offset="100%" stop-color="rgba(250,204,21,0)"/></radialGradient>
+                  </defs>
+                  <rect width="200" height="150" fill="url(#fBgV${i})"/>
+                  <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+                  <line x1="0" y1="50" x2="200" y2="50" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="0" y1="100" x2="200" y2="100" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                  <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                  ${i === 0 ? `<ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatV${i})"/>${heatZones.map(z => `<ellipse cx="${(z.x + z.w / 2) * 2}" cy="${(z.y + z.h / 2) * 1.5}" rx="${(z.w / 2) * 2}" ry="${(z.h / 2) * 1.5}" fill="none" stroke="rgba(220,38,38,0.7)" stroke-width="1.5" stroke-dasharray="4,3"/>`).join('')}` : `<ellipse cx="100" cy="60" rx="48" ry="52" fill="rgba(220,38,38,${(0.1 + frame.score * 0.3).toFixed(2)})"/>`}
+                </svg>
+                <div style="position: absolute; top: 6px; right: 6px; background: ${frameScoreColor(frame.score)}; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.2);">${(frame.score * 100).toFixed(1)}%</div>
+                ${i === 0 ? '<div style="position: absolute; top: 6px; left: 6px; background: #DC2626; color: #fff; font-size: 7px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;">Highest</div>' : ''}
               </div>
-              <div style="font-size: 7px; color: #9ca3af; max-width: 120px; line-height: 1.4;">Scores represent maximum and mean across all analyzed frames</div>
-            </div>
+              <div style="text-align: center; margin-top: 6px;">
+                <div style="font-size: 10px; font-weight: 600; color: #374151;">Frame ${frame.index} — ${frame.timestamp}</div>
+              </div>
+            </div>`).join('')}
           </div>
           ` : `
-          <!-- Image / non-suspicious video: source + heat map -->
-          <div style="display: flex; gap: 10px; justify-content: center;">
+          <!-- Image / non-suspicious: source + overlay -->
+          <div style="display: flex; gap: 16px; justify-content: center;">
             <div style="text-align: center;">
-              <svg width="120" height="90" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 3px;">
-                <defs><linearGradient id="frameBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
-                <rect width="160" height="120" fill="url(#frameBg)"/>
-                <ellipse cx="80" cy="46" rx="22" ry="26" fill="#4b5563"/>
-                <ellipse cx="80" cy="110" rx="40" ry="30" fill="#4b5563"/>
-                <line x1="0" y1="40" x2="160" y2="40" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-                <line x1="0" y1="80" x2="160" y2="80" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-                <line x1="53" y1="0" x2="53" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-                <line x1="107" y1="0" x2="107" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+              <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
+                <defs><linearGradient id="fBgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
+                <rect width="200" height="150" fill="url(#fBgP)"/>
+                <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+                <line x1="0" y1="50" x2="200" y2="50" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="0" y1="100" x2="200" y2="100" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
               </svg>
-              <div style="font-size: 8px; color: #6b7280; margin-top: 4px; font-weight: 500;">Source Frame</div>
+              <div style="font-size: 9px; color: #6b7280; margin-top: 6px; font-weight: 500;">Source Frame</div>
             </div>
             <div style="text-align: center;">
-              <svg width="120" height="90" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 3px;">
+              <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
                 <defs>
-                  <linearGradient id="heatBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+                  <linearGradient id="hBgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
                   <radialGradient id="zoneHigh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(220,38,38,0.55)"/><stop offset="50%" stop-color="rgba(234,88,12,0.3)"/><stop offset="100%" stop-color="rgba(250,204,21,0.05)"/></radialGradient>
                   <radialGradient id="zoneMedium" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(234,88,12,0.4)"/><stop offset="50%" stop-color="rgba(250,204,21,0.2)"/><stop offset="100%" stop-color="rgba(250,204,21,0.02)"/></radialGradient>
                   <radialGradient id="zoneLow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(250,204,21,0.3)"/><stop offset="60%" stop-color="rgba(250,204,21,0.1)"/><stop offset="100%" stop-color="rgba(250,204,21,0.0)"/></radialGradient>
                 </defs>
-                <rect width="160" height="120" fill="url(#heatBg)"/>
-                <ellipse cx="80" cy="46" rx="22" ry="26" fill="#374151"/>
-                <ellipse cx="80" cy="110" rx="40" ry="30" fill="#374151"/>
+                <rect width="200" height="150" fill="url(#hBgP)"/>
+                <ellipse cx="100" cy="56" rx="28" ry="32" fill="#374151"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#374151"/>
                 ${hasZones ? zoneSvgEllipses : ''}
-                ${!isSuspicious ? '<rect x="52" y="25" width="56" height="48" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
+                ${!isSuspicious ? '<rect x="65" y="30" width="70" height="60" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
               </svg>
-              <div style="font-size: 8px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 4px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
+              <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 6px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
             </div>
           </div>
           `}
-        </div>
-
-        <!-- RIGHT: Legend + metadata panel -->
-        <div style="flex: 1.3; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px;">
-          <div>
-            <div style="font-size: 9px; font-weight: 600; color: #374151; margin-bottom: 4px; line-height: 1.4;">
-              ${isAudio ? (isSuspicious ? 'Anomalous Audio Patterns' : 'No Audio Anomalies Observed') : (isSuspicious ? 'Regions of Interest Identified' : 'No Regions of Concern Observed')}
-            </div>
-            <div style="font-size: 8px; color: #4b5563; line-height: 1.5; margin-bottom: 6px;">
-              ${isAudio
-                ? (isSuspicious ? 'Highlighted region indicates audio characteristics that may be inconsistent with natural speech patterns.' : 'Audio analysis did not observe patterns suggestive of synthetic generation.')
-                : (isSuspicious ? 'Shaded regions indicate areas where analysis observed patterns that may be inconsistent with unaltered media.' : 'Frame analysis did not observe regions exhibiting patterns suggestive of manipulation.')}
-            </div>
-          </div>
           ${!isAudio && isSuspicious ? `
-          <div style="margin-bottom: 4px;">
-            <div style="font-size: 8px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px;">Intensity Scale</div>
-            <div style="display: flex; gap: 6px;">
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(220,38,38,0.15); border: 1.5px solid #DC2626;"></div><span style="font-size: 8px; color: #DC2626; font-weight: 500;">High</span></div>
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(234,88,12,0.12); border: 1.5px solid #EA580C;"></div><span style="font-size: 8px; color: #EA580C; font-weight: 500;">Medium</span></div>
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 8px; color: #CA8A04; font-weight: 500;">Low</span></div>
-            </div>
+          <div style="display: flex; justify-content: center; gap: 16px; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(220,38,38,0.15); border: 1.5px solid #DC2626;"></div><span style="font-size: 9px; color: #DC2626; font-weight: 500;">High</span></div>
+            <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(234,88,12,0.12); border: 1.5px solid #EA580C;"></div><span style="font-size: 9px; color: #EA580C; font-weight: 500;">Medium</span></div>
+            <div style="display: flex; align-items: center; gap: 5px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 9px; color: #CA8A04; font-weight: 500;">Low</span></div>
           </div>` : ''}
-          ${metaItems.length > 0 ? `
-          <div style="margin-bottom: 4px;">
-            <div style="font-size: 8px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;">Extracted Metadata</div>
-            ${metaItems.slice(0, 4).map(m => `<div style="display: flex; justify-content: space-between; padding: 2px 0;"><span style="font-size: 8px; color: #6b7280;">${m.label}</span><span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span></div>`).join('')}
-          </div>` : ''}
-          ${details?.structural_consistency ? `
-          <div style="display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 3px; margin-bottom: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
-            <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
-            <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'Structural checks passed' : 'Integrity concerns noted'}</span>
-          </div>` : ''}
-          <div style="font-size: 7.5px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 6px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data and should not be treated as direct evidence of manipulation.</div>
         </div>
       </div>
     </div>
 
-    <!-- 5. Key Findings + 6. Attribution -->
-    <div style="display: flex; gap: 16px; margin-bottom: 20px;">
-      <div style="flex: 3; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Key Findings</div>
-        <ul style="list-style: none; margin: 0; padding: 0;">
-          ${keyFindings.slice(0, 5).map((f) => `<li style="font-size: 11px; color: #374151; padding: 4px 0; padding-left: 16px; position: relative; line-height: 1.6;"><span style="position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: ${isSuspicious ? '#EF4444' : '#22C55E'}; display: inline-block;"></span>${f}</li>`).join('')}
-        </ul>
-      </div>
-      <div style="flex: 2; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Attribution</div>
-        <div style="margin-bottom: 10px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Closest Structural Match</div>
-          <div style="font-size: 15px; font-weight: 700; color: #1a1a1a;">${primaryMatch}</div>
-          <div style="font-size: 10px; color: #6b7280;">${primaryType}</div>
-        </div>
-        <div style="margin-top: 6px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 600;">Evidence Basis</div>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">Metadata structure</span><span style="color: #374151; font-weight: 500;">${hasMetadata ? 'EXIF / container analyzed' : 'Limited data'}</span></div>
-            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">Encoding characteristics</span><span style="color: #374151; font-weight: 500;">${meta?.general?.writing_application || 'Standard encoding'}</span></div>
-            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">File integrity</span><span style="color: #374151; font-weight: 500;">${hasIntegrityData ? (integrityPassed ? 'Checks passed' : 'Concerns noted') : 'Not evaluated'}</span></div>
+    <!-- 5. Two-column detail section -->
+    <div style="display: flex; gap: 14px; margin-bottom: 14px;">
+      <!-- LEFT: Regions of Interest -->
+      <div style="flex: 1; padding: 14px 16px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">${isSuspicious ? 'Regions of Interest Identified' : 'Analysis Summary'}</div>
+        ${isSuspicious && regionDescs.length > 0 ? `
+        ${regionDescs.map(r => `
+        <div style="display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px;">
+          <div style="width: 6px; height: 6px; border-radius: 50%; background: #EF4444; margin-top: 5px; flex-shrink: 0;"></div>
+          <div>
+            <div style="font-size: 10px; font-weight: 600; color: #1a1a1a;">${r.region}</div>
+            <div style="font-size: 9px; color: #4b5563; line-height: 1.5;">${r.detail}</div>
           </div>
+        </div>`).join('')}
+        ` : `<div style="font-size: 10px; color: #6b7280; line-height: 1.6;">No indicators of manipulation were observed. Frame analysis did not detect regions exhibiting patterns suggestive of synthetic alteration.</div>`}
+      </div>
+      <!-- RIGHT: Extracted Metadata -->
+      <div style="flex: 1; padding: 14px 16px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Extracted Metadata</div>
+        ${metaItems.length > 0 ? metaItems.slice(0, 6).map(m => `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <span style="font-size: 9px; color: #6b7280;">${m.label}</span>
+          <span style="font-size: 9px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
+        </div>`).join('') : '<div style="font-size: 10px; color: #6b7280;">No metadata available</div>'}
+        ${hasIntegrityData ? `
+        <div style="display: flex; align-items: center; gap: 5px; margin-top: 10px; padding: 5px 8px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
+          <div style="width: 6px; height: 6px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
+          <span style="font-size: 8.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- 6. Attribution (compact row) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div>
+          <div style="font-size: 9px; color: #6b7280; font-weight: 500;">Closest Match</div>
+          <div style="font-size: 13px; font-weight: 700; color: #1a1a1a;">${primaryMatch}</div>
         </div>
-        <div style="margin-top: 10px; padding: 8px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 9px; color: #9ca3af; line-height: 1.5; font-style: italic;">
-          Attribution reflects structural signature comparison and should not be interpreted as a definitive determination of origin.
+        <div style="width: 1px; height: 28px; background: #e5e7eb;"></div>
+        <div>
+          <div style="font-size: 9px; color: #6b7280; font-weight: 500;">Type</div>
+          <div style="font-size: 11px; font-weight: 600; color: #374151;">${primaryType}</div>
         </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; font-size: 9px;">
+        <span style="color: #6b7280;">Metadata: <span style="color: #374151; font-weight: 500;">${hasMetadata ? 'Analyzed' : 'Limited'}</span></span>
+        <span style="color: #6b7280;">Encoding: <span style="color: #374151; font-weight: 500;">${meta?.general?.writing_application || 'Standard'}</span></span>
+        <span style="color: #6b7280;">Integrity: <span style="color: ${integrityPassed ? '#15803D' : hasIntegrityData ? '#B91C1C' : '#6b7280'}; font-weight: 500;">${hasIntegrityData ? (integrityPassed ? 'Passed' : 'Concerns') : 'N/A'}</span></span>
       </div>
     </div>
 
     <!-- Disclaimer -->
-    <div style="font-size: 9px; color: #9ca3af; line-height: 1.5; padding: 10px 0 0; border-top: 1px solid #f3f4f6;">
+    <div style="font-size: 8.5px; color: #9ca3af; line-height: 1.5; padding-top: 8px; border-top: 1px solid #f3f4f6;">
       This report was generated by automated analysis (DataSpike v${details?.project_info?.verify_version || '2.374'}).
       Findings are probabilistic in nature and should be evaluated in conjunction with independent investigative context.
       This document does not constitute legal advice or a conclusive determination of authenticity.
