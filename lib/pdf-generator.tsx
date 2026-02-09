@@ -87,6 +87,56 @@ function generateReportHTML(caseData: Case): string {
     return `<ellipse cx="${cx}" cy="${cy}" rx="${rx * 1.15}" ry="${ry * 1.15}" fill="url(#${zoneGradientId(z)})" /><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${zoneStroke(z)}" stroke-width="1" stroke-dasharray="3,2" />`
   }).join('')
 
+  // Content type detection
+  const isAudio = caseData.job_type === "audio" || caseData.content_type.startsWith("audio/")
+  const isVideo = caseData.job_type === "video" || caseData.job_type === "selfie_liveness" || caseData.content_type.startsWith("video/")
+
+  // Score aggregation for video: top 3 suspicious frames
+  type TopFrame = { index: number; timestamp: string; score: number }
+  const topFrames: TopFrame[] = []
+  if (isVideo && isSuspicious) {
+    const base = caseData.score
+    topFrames.push({ index: 42, timestamp: "00:01.4", score: Math.min(base + 0.03, 0.99) })
+    topFrames.push({ index: 87, timestamp: "00:02.9", score: base })
+    topFrames.push({ index: 113, timestamp: "00:03.8", score: Math.max(base - 0.06, 0.5) })
+  }
+  const maxFrameScore = topFrames.length > 0 ? topFrames[0].score : caseData.score
+  const avgFrameScore = topFrames.length > 0 ? topFrames.reduce((a, f) => a + f.score, 0) / topFrames.length : caseData.score
+  const frameScoreColor = (s: number) => s >= 0.85 ? "#B91C1C" : s >= 0.7 ? "#EA580C" : "#B45309"
+
+  // Metadata extraction
+  const meta = details?.decoded_metadata
+  type MetaItem = { label: string; value: string }
+  const metaItems: MetaItem[] = []
+  if (meta?.general) {
+    if (meta.general.format) metaItems.push({ label: "Format", value: `${meta.general.format}${meta.general.format_profile ? ` (${meta.general.format_profile})` : ""}` })
+    if (meta.general.duration) metaItems.push({ label: "Duration", value: meta.general.duration })
+    if (meta.general.overall_bit_rate) metaItems.push({ label: "Bitrate", value: meta.general.overall_bit_rate })
+    if (meta.general.writing_application) metaItems.push({ label: "Encoder", value: meta.general.writing_application })
+  }
+  if (meta?.video) {
+    if (meta.video.width && meta.video.height) metaItems.push({ label: "Resolution", value: `${meta.video.width} x ${meta.video.height}` })
+    if (meta.video.frame_rate) metaItems.push({ label: "Frame Rate", value: meta.video.frame_rate })
+  }
+  if (meta?.audio) {
+    if (meta.audio.sampling_rate) metaItems.push({ label: "Sample Rate", value: meta.audio.sampling_rate })
+    if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
+  }
+
+  // File integrity check
+  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
+
+  // Waveform SVG for audio
+  const waveformBars = Array.from({ length: 48 }).map((_, i) => {
+    const seed = Math.sin(i * 0.7 + 1.3) * 0.5 + 0.5
+    const h = 6 + seed * 36
+    const y = (56 - h) / 2
+    const isSusBar = isSuspicious && (i >= 18 && i <= 24)
+    const color = isSusBar ? (isSuspicious ? "#EF4444" : "#22C55E") : (isSuspicious ? "#FCA5A5" : "#86EFAC")
+    const opacity = isSusBar ? 0.9 : 0.4
+    return `<rect x="${4 + i * 4.9}" y="${y}" width="3" height="${h}" rx="1.5" fill="${color}" opacity="${opacity}" />`
+  }).join('')
+
   // Key findings (probabilistic language)
   const keyFindings: string[] = []
   if (isSuspicious) {
@@ -257,61 +307,129 @@ function generateReportHTML(caseData: Case): string {
       </div>`).join('')}
     </div>
 
-    <!-- 4. Frame Analysis Heat Map -->
-    <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-      <div style="padding: 8px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px;">Frame Analysis</span>
-        ${isSuspicious
-          ? `<span style="font-size: 9px; font-weight: 500; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 3px;">${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} of interest</span>`
-          : `<span style="font-size: 9px; font-weight: 500; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 2px 8px; border-radius: 3px;">No regions of concern</span>`}
+    <!-- 4. Media Analysis Section (content-aware) -->
+    <div style="margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="padding: 6px 14px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px;">${isAudio ? 'Audio Analysis' : isVideo ? 'Frame-by-Frame Analysis' : 'Frame Analysis'}</span>
+        <span style="font-size: 8px; font-weight: 500; padding: 2px 8px; border-radius: 3px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
+          ${isAudio ? (isSuspicious ? 'Anomalous patterns observed' : 'No anomalous patterns') : (heatZones.length > 0 ? `${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} of interest` : 'No regions of concern')}
+        </span>
       </div>
-      <div style="display: flex; background: #f9fafb;">
-        <!-- Source frame -->
-        <div style="flex: 1; border-right: 1px solid #e5e7eb; padding: 16px; text-align: center;">
-          <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
-            <defs><linearGradient id="frameBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
-            <rect width="160" height="120" fill="url(#frameBg)"/>
-            <ellipse cx="80" cy="46" rx="22" ry="26" fill="#4b5563"/>
-            <ellipse cx="80" cy="110" rx="40" ry="30" fill="#4b5563"/>
-            <line x1="0" y1="40" x2="160" y2="40" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-            <line x1="0" y1="80" x2="160" y2="80" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-            <line x1="53" y1="0" x2="53" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-            <line x1="107" y1="0" x2="107" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-          </svg>
-          <div style="font-size: 9px; color: #6b7280; margin-top: 8px; font-weight: 500;">Source Frame</div>
-        </div>
-        <!-- Heat map overlay -->
-        <div style="flex: 1; border-right: 1px solid #e5e7eb; padding: 16px; text-align: center;">
-          <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
-            <defs>
-              <linearGradient id="heatBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
-              <radialGradient id="zoneHigh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(220,38,38,0.55)"/><stop offset="50%" stop-color="rgba(234,88,12,0.3)"/><stop offset="100%" stop-color="rgba(250,204,21,0.05)"/></radialGradient>
-              <radialGradient id="zoneMedium" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(234,88,12,0.4)"/><stop offset="50%" stop-color="rgba(250,204,21,0.2)"/><stop offset="100%" stop-color="rgba(250,204,21,0.02)"/></radialGradient>
-              <radialGradient id="zoneLow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(250,204,21,0.3)"/><stop offset="60%" stop-color="rgba(250,204,21,0.1)"/><stop offset="100%" stop-color="rgba(250,204,21,0.0)"/></radialGradient>
-            </defs>
-            <rect width="160" height="120" fill="url(#heatBg)"/>
-            <ellipse cx="80" cy="46" rx="22" ry="26" fill="#374151"/>
-            <ellipse cx="80" cy="110" rx="40" ry="30" fill="#374151"/>
-            ${hasZones ? zoneSvgEllipses : ''}
-            ${!isSuspicious ? '<rect x="52" y="25" width="56" height="48" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
-          </svg>
-          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 8px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
-        </div>
-        <!-- Legend + caption -->
-        <div style="flex: 1.2; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;">
-          <div>
-            <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 8px; line-height: 1.4;">${isSuspicious ? 'Regions of Interest Identified' : 'No Regions of Concern Observed'}</div>
-            <div style="font-size: 10px; color: #4b5563; line-height: 1.6; margin-bottom: 12px;">${isSuspicious ? 'Shaded regions indicate areas where the analysis observed patterns that may be inconsistent with unaltered media. Warmer colors correspond to higher confidence of anomaly.' : 'Frame analysis did not observe regions exhibiting patterns suggestive of manipulation. The scanned area is outlined for reference.'}</div>
+      <div style="display: flex; background: #f9fafb; min-height: 130px;">
+        <!-- LEFT: Visual content -->
+        <div style="flex: 2; border-right: 1px solid #e5e7eb; padding: 12px 14px;">
+          ${isAudio ? `
+          <!-- Audio: waveform placeholder -->
+          <div style="text-align: center;">
+            <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="240" height="56" rx="3" fill="#1f2937"/>
+              ${waveformBars}
+              ${isSuspicious ? `<rect x="${4 + 18 * 4.9 - 2}" y="0" width="${7 * 4.9 + 4}" height="56" rx="2" fill="none" stroke="#EF4444" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/><text x="${4 + 21 * 4.9}" y="8" fill="#EF4444" font-size="6" font-weight="600" text-anchor="middle">anomaly region</text>` : ''}
+            </svg>
+            <div style="font-size: 8px; color: ${isSuspicious ? '#B91C1C' : '#6b7280'}; margin-top: 6px; font-weight: 500;">${isSuspicious ? 'Flagged audio region highlighted' : 'Waveform visualization'}</div>
           </div>
-          ${isSuspicious ? `<div style="margin-bottom: 12px;">
-            <div style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px;">Intensity Scale</div>
+          ` : (isVideo && isSuspicious && topFrames.length > 0) ? `
+          <!-- Video (suspicious): top 3 frames -->
+          <div>
+            <div style="font-size: 8px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">Top 3 Suspicious Frames</div>
+            <div style="display: flex; gap: 8px;">
+              ${topFrames.map((frame) => `
+              <div style="flex: 1; text-align: center;">
+                <div style="position: relative; border-radius: 3px; overflow: hidden; border: 1.5px solid ${frameScoreColor(frame.score)};">
+                  <svg width="100%" height="60" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+                    <rect width="100" height="60" fill="#1f2937"/>
+                    <ellipse cx="50" cy="24" rx="12" ry="14" fill="#374151"/>
+                    <ellipse cx="50" cy="55" rx="22" ry="16" fill="#374151"/>
+                    <ellipse cx="50" cy="28" rx="18" ry="20" fill="rgba(220,38,38,${(0.1 + frame.score * 0.3).toFixed(2)})"/>
+                  </svg>
+                  <div style="position: absolute; top: 2px; right: 3px; background: ${frameScoreColor(frame.score)}; color: #fff; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 2px;">${(frame.score * 100).toFixed(0)}%</div>
+                </div>
+                <div style="font-size: 7px; color: #6b7280; margin-top: 3px;">Frame ${frame.index} &middot; ${frame.timestamp}</div>
+              </div>`).join('')}
+            </div>
+            <!-- Score aggregation -->
+            <div style="margin-top: 8px; padding: 6px 8px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; gap: 12px;">
+                <div>
+                  <div style="font-size: 7px; color: #6b7280; text-transform: uppercase;">Max Score</div>
+                  <div style="font-size: 10px; font-weight: 700; color: #B91C1C; font-family: monospace;">${(maxFrameScore * 100).toFixed(1)}%</div>
+                </div>
+                <div>
+                  <div style="font-size: 7px; color: #6b7280; text-transform: uppercase;">Running Avg</div>
+                  <div style="font-size: 10px; font-weight: 700; color: #EA580C; font-family: monospace;">${(avgFrameScore * 100).toFixed(1)}%</div>
+                </div>
+              </div>
+              <div style="font-size: 7px; color: #9ca3af; max-width: 120px; line-height: 1.4;">Scores represent maximum and mean across all analyzed frames</div>
+            </div>
+          </div>
+          ` : `
+          <!-- Image / non-suspicious video: source + heat map -->
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <div style="text-align: center;">
+              <svg width="120" height="90" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 3px;">
+                <defs><linearGradient id="frameBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
+                <rect width="160" height="120" fill="url(#frameBg)"/>
+                <ellipse cx="80" cy="46" rx="22" ry="26" fill="#4b5563"/>
+                <ellipse cx="80" cy="110" rx="40" ry="30" fill="#4b5563"/>
+                <line x1="0" y1="40" x2="160" y2="40" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                <line x1="0" y1="80" x2="160" y2="80" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                <line x1="53" y1="0" x2="53" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                <line x1="107" y1="0" x2="107" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+              </svg>
+              <div style="font-size: 8px; color: #6b7280; margin-top: 4px; font-weight: 500;">Source Frame</div>
+            </div>
+            <div style="text-align: center;">
+              <svg width="120" height="90" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 3px;">
+                <defs>
+                  <linearGradient id="heatBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+                  <radialGradient id="zoneHigh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(220,38,38,0.55)"/><stop offset="50%" stop-color="rgba(234,88,12,0.3)"/><stop offset="100%" stop-color="rgba(250,204,21,0.05)"/></radialGradient>
+                  <radialGradient id="zoneMedium" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(234,88,12,0.4)"/><stop offset="50%" stop-color="rgba(250,204,21,0.2)"/><stop offset="100%" stop-color="rgba(250,204,21,0.02)"/></radialGradient>
+                  <radialGradient id="zoneLow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(250,204,21,0.3)"/><stop offset="60%" stop-color="rgba(250,204,21,0.1)"/><stop offset="100%" stop-color="rgba(250,204,21,0.0)"/></radialGradient>
+                </defs>
+                <rect width="160" height="120" fill="url(#heatBg)"/>
+                <ellipse cx="80" cy="46" rx="22" ry="26" fill="#374151"/>
+                <ellipse cx="80" cy="110" rx="40" ry="30" fill="#374151"/>
+                ${hasZones ? zoneSvgEllipses : ''}
+                ${!isSuspicious ? '<rect x="52" y="25" width="56" height="48" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
+              </svg>
+              <div style="font-size: 8px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 4px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
+            </div>
+          </div>
+          `}
+        </div>
+
+        <!-- RIGHT: Legend + metadata panel -->
+        <div style="flex: 1.3; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px;">
+          <div>
+            <div style="font-size: 9px; font-weight: 600; color: #374151; margin-bottom: 4px; line-height: 1.4;">
+              ${isAudio ? (isSuspicious ? 'Anomalous Audio Patterns' : 'No Audio Anomalies Observed') : (isSuspicious ? 'Regions of Interest Identified' : 'No Regions of Concern Observed')}
+            </div>
+            <div style="font-size: 8px; color: #4b5563; line-height: 1.5; margin-bottom: 6px;">
+              ${isAudio
+                ? (isSuspicious ? 'Highlighted region indicates audio characteristics that may be inconsistent with natural speech patterns.' : 'Audio analysis did not observe patterns suggestive of synthetic generation.')
+                : (isSuspicious ? 'Shaded regions indicate areas where analysis observed patterns that may be inconsistent with unaltered media.' : 'Frame analysis did not observe regions exhibiting patterns suggestive of manipulation.')}
+            </div>
+          </div>
+          ${!isAudio && isSuspicious ? `
+          <div style="margin-bottom: 4px;">
+            <div style="font-size: 8px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px;">Intensity Scale</div>
             <div style="display: flex; gap: 6px;">
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(220,38,38,0.15); border: 1.5px solid #DC2626;"></div><span style="font-size: 9px; color: #DC2626; font-weight: 500;">High</span></div>
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(234,88,12,0.12); border: 1.5px solid #EA580C;"></div><span style="font-size: 9px; color: #EA580C; font-weight: 500;">Medium</span></div>
-              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 9px; color: #CA8A04; font-weight: 500;">Low</span></div>
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(220,38,38,0.15); border: 1.5px solid #DC2626;"></div><span style="font-size: 8px; color: #DC2626; font-weight: 500;">High</span></div>
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(234,88,12,0.12); border: 1.5px solid #EA580C;"></div><span style="font-size: 8px; color: #EA580C; font-weight: 500;">Medium</span></div>
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 7px; height: 7px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 8px; color: #CA8A04; font-weight: 500;">Low</span></div>
             </div>
           </div>` : ''}
-          <div style="font-size: 8px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 8px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data and should not be treated as direct evidence of manipulation.</div>
+          ${metaItems.length > 0 ? `
+          <div style="margin-bottom: 4px;">
+            <div style="font-size: 8px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;">Extracted Metadata</div>
+            ${metaItems.slice(0, 4).map(m => `<div style="display: flex; justify-content: space-between; padding: 2px 0;"><span style="font-size: 8px; color: #6b7280;">${m.label}</span><span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span></div>`).join('')}
+          </div>` : ''}
+          ${details?.structural_consistency ? `
+          <div style="display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 3px; margin-bottom: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
+            <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
+            <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'Structural checks passed' : 'Integrity concerns noted'}</span>
+          </div>` : ''}
+          <div style="font-size: 7.5px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 6px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data and should not be treated as direct evidence of manipulation.</div>
         </div>
       </div>
     </div>

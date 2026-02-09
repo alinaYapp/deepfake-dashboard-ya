@@ -384,6 +384,10 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
         isEnterprise={isEnterprise}
         pixelAnalysis={details?.pixel_analysis}
         confidencePercent={confidencePercent}
+        jobType={caseData.job_type}
+        contentType={caseData.content_type}
+        details={caseData.details}
+        overallScore={caseData.score}
       />
 
       {/* ── 5. Key Findings + 6. Attribution side-by-side ── */}
@@ -596,7 +600,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
         <span style={{ letterSpacing: "1px", fontWeight: 600 }}>
           CONFIDENTIAL
         </span>
-        <span>Page 1 of 6</span>
+        <span>Page 1 of 1</span>
       </div>
     </div>
   )
