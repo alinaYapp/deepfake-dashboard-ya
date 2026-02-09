@@ -26,7 +26,7 @@ function generateReportHTML(caseData: Case): string {
   const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
   const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
 
-  // Analysis results for the table
+  // Analysis results for the table (still used on Page 2)
   const analysisResults = [
     {
       check: "Face Manipulation",
@@ -55,30 +55,70 @@ function generateReportHTML(caseData: Case): string {
     },
   ]
 
-  // Key findings based on actual analysis data
+  // Key metrics for Page 1 (max 4, plain language)
+  const totalFlags = criticalCount + suspectCount
+  const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
+  const voiceResult = details?.voice_analysis?.[0]
+
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok" }
+  const metrics: Metric[] = []
+  if (faceResult) {
+    metrics.push({
+      label: "Face Analysis",
+      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}% suspicious` : "No issues found",
+      status: faceResult.result === "suspicious" ? "alert" : "ok",
+    })
+  }
+  if (voiceResult) {
+    const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
+    metrics.push({
+      label: "Voice Analysis",
+      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}% suspicious` : "No issues found",
+      status: voiceSus ? "alert" : "ok",
+    })
+  }
+  metrics.push(totalFlags > 0
+    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} flagged`, status: criticalCount > 0 ? "alert" as const : "warn" as const }
+    : { label: "Forensic Flags", value: "None identified", status: "ok" as const }
+  )
+  metrics.push({
+    label: "Processing Pipeline",
+    value: pipeline.length > 1 ? `${pipeline.length} stages detected` : pipeline.length === 1 ? `Single source: ${pipeline[0]?.brand}` : "Unknown",
+    status: pipeline.length > 2 ? "warn" : "ok",
+  })
+
+  const metricColor = (s: string) => s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
+  const metricBg = (s: string) => s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
+  const metricBorder = (s: string) => s === "alert" ? "#FECACA" : s === "warn" ? "#FDE68A" : "#BBF7D0"
+
+  // Key findings (plain language, what not how)
   const keyFindings: string[] = []
   if (isSuspicious) {
-    const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
     if (faceResult?.result === "suspicious") {
-      keyFindings.push(`Face manipulation detected with ${(faceResult.confidence * 100).toFixed(1)}% confidence`)
+      keyFindings.push("Facial features show signs consistent with synthetic manipulation")
     }
-    const eyeResult = details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")
+    const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
     if (eyeResult?.result === "suspicious") {
-      keyFindings.push(`Eye gaze inconsistencies detected (${(eyeResult.confidence * 100).toFixed(1)}% confidence)`)
+      keyFindings.push("Eye gaze patterns appear inconsistent with natural movement")
     }
-    if (details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Voice synthesis artifacts detected in audio track")
+    if (voiceResult?.result?.toLowerCase() === "suspicious") {
+      keyFindings.push("Audio track contains patterns associated with voice synthesis")
     }
-    if (details?.forensic_analysis?.some((f) => f.severity === "critical")) {
-      keyFindings.push("File structure matches known AI generator signatures")
+    if (criticalCount > 0) {
+      keyFindings.push("File structure matches signatures of known AI generation tools")
+    }
+    if (pipeline.length > 2) {
+      keyFindings.push("Media has passed through multiple processing stages")
     }
   } else {
-    keyFindings.push("No face manipulation detected")
-    keyFindings.push("Content appears to be camera-original")
-    if (details?.voice_analysis && details.voice_analysis.length > 0) {
-      keyFindings.push("Voice patterns consistent with natural speech")
+    keyFindings.push("No indicators of facial manipulation were identified")
+    if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
+      keyFindings.push("Voice patterns are consistent with natural speech")
     }
-    keyFindings.push("File structure matches authentic capture devices")
+    keyFindings.push("File structure is consistent with authentic capture devices")
+    if (pipeline.length <= 1) {
+      keyFindings.push("Media appears to originate from a single source")
+    }
   }
 
   // Voice analysis data
@@ -176,35 +216,7 @@ function generateReportHTML(caseData: Case): string {
       font-family: monospace;
     }
     
-    /* Main Verdict Card */
-    .verdict-section {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 28px;
-    }
-    .verdict-card {
-      flex: 6;
-      padding: 24px;
-      border-radius: 12px;
-      background: ${isSuspicious ? "#FEF2F2" : "#F0FDF4"};
-      border: 1px solid ${isSuspicious ? "#FECACA" : "#BBF7D0"};
-    }
-    .verdict-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      background: ${isSuspicious ? "#DC2626" : "#16A34A"};
-      color: white;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-    .verdict-badge-icon {
-      width: 18px;
-      height: 18px;
-    }
+    /* Confidence bar (used on Page 2) */
     .confidence-section {
       margin-top: 16px;
     }
@@ -212,12 +224,6 @@ function generateReportHTML(caseData: Case): string {
       font-size: 12px;
       color: #6b7280;
       margin-bottom: 6px;
-    }
-    .confidence-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: ${isSuspicious ? "#DC2626" : "#16A34A"};
-      margin-bottom: 8px;
     }
     .confidence-bar {
       height: 10px;
@@ -229,32 +235,6 @@ function generateReportHTML(caseData: Case): string {
       height: 100%;
       background: ${isSuspicious ? "#DC2626" : "#16A34A"};
       border-radius: 5px;
-    }
-    
-    /* Media Preview */
-    .media-preview {
-      flex: 4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .media-thumbnail {
-      width: 100%;
-      height: 160px;
-      background: #f3f4f6;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9ca3af;
-      font-size: 13px;
-      margin-bottom: 10px;
-    }
-    .media-info {
-      font-size: 11px;
-      color: #6b7280;
-      text-align: center;
     }
     
     /* Analysis Results Table */
@@ -296,57 +276,6 @@ function generateReportHTML(caseData: Case): string {
     .result-badge.valid { background: #DCFCE7; color: #16A34A; }
     .result-badge.critical { background: #FEE2E2; color: #DC2626; }
     .result-badge.suspect { background: #FEF3C7; color: #D97706; }
-    
-    /* Key Findings Box */
-    .findings-box {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-    }
-    .findings-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 10px;
-    }
-    .findings-list {
-      list-style: none;
-    }
-    .findings-list li {
-      font-size: 11px;
-      color: #4b5563;
-      padding: 4px 0;
-      padding-left: 16px;
-      position: relative;
-    }
-    .findings-list li::before {
-      content: "•";
-      position: absolute;
-      left: 0;
-      color: #9ca3af;
-    }
-    
-    /* Likely Source */
-    .source-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      padding: 12px 16px;
-      background: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e5e7eb;
-    }
-    .source-label {
-      font-weight: 600;
-      color: #374151;
-    }
-    .source-value {
-      color: #DC2626;
-      font-weight: 500;
-    }
     
     /* Page 2: Detection Details */
     .detection-card {
@@ -678,129 +607,121 @@ function generateReportHTML(caseData: Case): string {
 </head>
 <body>
   <!-- Page 1: Executive Summary -->
-  <div class="page">
-    <div class="header">
+  <div class="page" style="padding: 48px 56px 44px;">
+
+    <!-- 1. Report Header -->
+    <div class="header" style="margin-bottom: 28px;">
       <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
+        <div class="logo-icon" style="width: 28px; height: 28px; font-size: 10px;">DS</div>
+        <div class="logo-text" style="font-size: 15px;">DataSpike</div>
       </div>
       <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
+        <div class="report-id" style="font-size: 12px;">#${reportNumber}</div>
+        <div style="font-size: 10px; margin-top: 2px;">${reportDate}</div>
       </div>
     </div>
 
-    <div style="font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 20px; letter-spacing: -0.01em;">
-      Deepfake Detection Report &mdash; Executive Summary
-    </div>
-
-    <!-- Verdict + Case Info row -->
-    <div style="display: flex; gap: 20px; margin-bottom: 22px;">
-      <div style="flex: 1; padding: 20px; border-radius: 10px; background: ${isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'};">
-        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; background: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; color: white; font-weight: 600; font-size: 12px; margin-bottom: 14px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            ${isSuspicious 
-              ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'
-              : isUncertain
-                ? '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'
-                : '<polyline points="20 6 9 17 4 12"></polyline>'}
-          </svg>
-          ${isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'VALID'}
-        </div>
-        <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">
-          ${isSuspicious ? 'Potential Manipulation Detected' : isUncertain ? 'Inconclusive Results' : 'No Manipulation Detected'}
-        </div>
-        <div style="margin-top: 14px;">
-          <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">Confidence Score</div>
-          <div style="font-size: 32px; font-weight: 700; color: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; line-height: 1; margin-bottom: 10px;">
-            ${confidencePercent}%
+    <!-- 2. Overall Verdict Block (most prominent) -->
+    <div style="background: ${isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'}; border: 1.5px solid ${isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'}; border-radius: 10px; padding: 24px 28px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div style="display: inline-block; padding: 7px 14px; border-radius: 6px; background: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; color: white; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;">
+            ${isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'VALID'}
           </div>
-          <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-            <div style="height: 100%; width: ${confidencePercent}%; background: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; border-radius: 4px;"></div>
+          <div style="font-size: 13px; color: #4b5563; margin-top: 10px; font-weight: 500;">
+            ${isSuspicious ? 'Potential Manipulation Detected' : isUncertain ? 'Inconclusive Analysis Results' : 'No Manipulation Detected'}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">Confidence Score</div>
+          <div style="font-size: 36px; font-weight: 700; color: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; line-height: 1;">
+            ${confidencePercent}<span style="font-size: 18px; font-weight: 600;">%</span>
           </div>
         </div>
       </div>
-      <div style="flex: 1; padding: 20px; border-radius: 10px; background: #f8fafc; border: 1px solid #e5e7eb;">
-        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">
-          Case Identification
+      <div style="margin-top: 16px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;">
+        <div style="height: 100%; width: ${confidencePercent}%; background: ${isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'}; border-radius: 3px;"></div>
+      </div>
+      <div style="display: flex; gap: 24px; margin-top: 14px; font-size: 10px; color: #6b7280;">
+        <span>Case <span style="font-family: monospace; color: #374151;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] : caseData.id}</span></span>
+        <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
+        <span>Submitted ${formatDate(caseData.created_at)}</span>
+        <span>Engine v${details?.project_info?.verify_version || '2.374'}</span>
+      </div>
+    </div>
+
+    <!-- 3. Key Metrics Summary -->
+    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+      ${metrics.slice(0, 4).map((m) => `
+      <div style="flex: 1; padding: 14px 16px; background: ${metricBg(m.status)}; border: 1px solid ${metricBorder(m.status)}; border-radius: 8px;">
+        <div style="font-size: 10px; color: #6b7280; font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px;">${m.label}</div>
+        <div style="font-size: 12px; font-weight: 600; color: ${metricColor(m.status)}; line-height: 1.3;">${m.value}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- 4. Suspicious Frame Highlight -->
+    <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px;">
+        Analyzed Frame &mdash; Heat Map Overlay
+      </div>
+      <div style="height: 160px; background: #f9fafb; display: flex; align-items: center; justify-content: center; gap: 32px;">
+        <div style="text-align: center;">
+          <div style="width: 100px; height: 120px; background: #f3f4f6; border: 1px dashed #d1d5db; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          </div>
+          <div style="font-size: 9px; color: #9ca3af; margin-top: 6px;">Original Frame</div>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Case ID</span><span style="font-size: 11px; font-weight: 500; font-family: monospace;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] + '...' : caseData.id}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">File Type</span><span style="font-size: 11px; font-weight: 500;">${caseData.content_type}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">File Size</span><span style="font-size: 11px; font-weight: 500;">${formatBytes(caseData.file_size_bytes)}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Submitted</span><span style="font-size: 11px; font-weight: 500;">${formatDate(caseData.created_at)}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Job Type</span><span style="font-size: 11px; font-weight: 500; text-transform: capitalize;">${caseData.job_type.replace('_', ' ')}</span></div>
-          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Engine Version</span><span style="font-size: 11px; font-weight: 500;">v${details?.project_info?.verify_version || '2.374'}</span></div>
+        <div style="text-align: center;">
+          <div style="width: 100px; height: 120px; background: ${isSuspicious ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.15) 100%)' : '#f3f4f6'}; border: 1px dashed ${isSuspicious ? '#fca5a5' : '#d1d5db'}; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${isSuspicious ? '#ef4444' : '#9ca3af'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </div>
+          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#9ca3af'}; margin-top: 6px;">Heat Map Overlay</div>
+        </div>
+        <div style="max-width: 260px; font-size: 10px; color: #6b7280; line-height: 1.6;">
+          ${isSuspicious
+            ? 'Highlighted regions indicate areas where the analysis detected anomalies consistent with synthetic generation or manipulation. Red intensity corresponds to confidence level.'
+            : 'No significant anomalies were detected. The frame analysis did not identify regions of concern.'}
         </div>
       </div>
     </div>
 
-    <!-- Analysis Results Table -->
-    <div class="section-title">Analysis Results</div>
-    <table class="results-table">
-      <thead>
-        <tr>
-          <th>Check</th>
-          <th style="width: 110px;">Result</th>
-          <th style="width: 100px; text-align: right;">Confidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${analysisResults
-          .filter((r) => r.confidence > 0)
-          .map(
-            (r) => `
-        <tr>
-          <td style="font-weight: 500;">${r.check}</td>
-          <td><span class="result-badge ${r.result}">${r.result === "critical" ? "Critical" : r.result === "suspicious" ? "Suspicious" : "Valid"}</span></td>
-          <td style="text-align: right; font-family: monospace; font-weight: 600; color: ${r.result === 'suspicious' || r.result === 'critical' ? '#DC2626' : '#16A34A'};">${(r.confidence * 100).toFixed(1)}%</td>
-        </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-
-    <!-- Key Findings + Source Attribution -->
-    <div style="display: flex; gap: 20px; margin-bottom: 16px;">
-      <div style="flex: 1; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px;">
-        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Key Findings</div>
+    <!-- 5. Key Findings + 6. Attribution -->
+    <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+      <div style="flex: 3; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Key Findings</div>
         <ul style="list-style: none; margin: 0; padding: 0;">
-          ${keyFindings.map((f) => `<li style="font-size: 11px; color: #4b5563; padding: 3px 0; padding-left: 14px; position: relative; line-height: 1.5;"><span style="position: absolute; left: 0; color: ${isSuspicious ? '#DC2626' : '#16A34A'}; font-weight: 700;">${isSuspicious ? '!' : '-'}</span>${f}</li>`).join('')}
+          ${keyFindings.slice(0, 5).map((f) => `<li style="font-size: 11px; color: #374151; padding: 4px 0; padding-left: 16px; position: relative; line-height: 1.6;"><span style="position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: ${isSuspicious ? '#EF4444' : '#22C55E'}; display: inline-block;"></span>${f}</li>`).join('')}
         </ul>
       </div>
-      <div style="flex: 1; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px;">
-        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Source Attribution</div>
-        <div>
+      <div style="flex: 2; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Attribution</div>
+        <div style="margin-bottom: 8px;">
           <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Primary Match</div>
-          <div style="font-size: 14px; font-weight: 700; color: ${isSuspicious ? '#DC2626' : '#16A34A'};">${primaryMatch}</div>
+          <div style="font-size: 15px; font-weight: 700; color: #1a1a1a;">${primaryMatch}</div>
           <div style="font-size: 10px; color: #6b7280;">${primaryType}</div>
         </div>
-        ${(criticalCount > 0 || suspectCount > 0) ? `
-        <div style="margin-top: 8px; padding: 8px 10px; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border-radius: 4px; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
-          <div style="font-size: 10px; color: #4b5563;">
-            ${criticalCount > 0 ? `<strong style="color: #DC2626;">${criticalCount} critical</strong>${suspectCount > 0 ? ', ' : ' '}` : ''}${suspectCount > 0 ? `<strong style="color: #D97706;">${suspectCount} suspect</strong> ` : ''}forensic signature${(criticalCount + suspectCount) !== 1 ? 's' : ''} identified
-          </div>
-        </div>` : ''}
         ${pipeline.length > 1 ? `
-        <div style="margin-top: 8px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">Processing Pipeline</div>
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            ${pipeline.map((p, i) => `<span style="display: inline-block; padding: 3px 8px; background: ${p.camera_type === 'AI Generator' ? '#FEE2E2' : p.camera_type === 'Encoder' ? '#FEF3C7' : '#DCFCE7'}; color: ${p.camera_type === 'AI Generator' ? '#DC2626' : p.camera_type === 'Encoder' ? '#D97706' : '#16A34A'}; border-radius: 3px; font-size: 9px; font-weight: 600;">${p.brand}</span>${i < pipeline.length - 1 ? '<span style="color: #9ca3af; font-size: 10px;">&gt;</span>' : ''}`).join('')}
+        <div style="margin-top: 10px;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px;">Media Pipeline</div>
+          <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            ${pipeline.map((p, i) => `<span style="display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 600; background: ${p.camera_type === 'AI Generator' ? '#FEE2E2' : p.camera_type === 'Encoder' ? '#FEF3C7' : '#DCFCE7'}; color: ${p.camera_type === 'AI Generator' ? '#B91C1C' : p.camera_type === 'Encoder' ? '#B45309' : '#15803D'};">${p.brand}</span>${i < pipeline.length - 1 ? '<span style="color: #9ca3af; font-size: 10px;">&#8250;</span>' : ''}`).join('')}
           </div>
         </div>` : ''}
+        <div style="margin-top: 12px; padding: 8px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 9px; color: #9ca3af; line-height: 1.5; font-style: italic;">
+          Attribution is based on structural signature matching and does not constitute a definitive identification of origin.
+        </div>
       </div>
     </div>
 
     <!-- Disclaimer -->
     <div style="font-size: 9px; color: #9ca3af; line-height: 1.5; padding: 10px 0 0; border-top: 1px solid #f3f4f6;">
       This report was generated automatically by DataSpike v${details?.project_info?.verify_version || '2.374'}.
-      Results are based on analysis of the submitted media and should be interpreted alongside additional context. This document does not constitute legal advice.
+      Results should be interpreted alongside additional investigative context. This document does not constitute legal advice.
     </div>
 
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
-      <span>CONFIDENTIAL</span>
+      <span style="letter-spacing: 1px; font-weight: 600;">CONFIDENTIAL</span>
       <span>Page 1 of 6</span>
     </div>
   </div>

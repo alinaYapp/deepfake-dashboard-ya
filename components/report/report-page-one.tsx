@@ -21,414 +21,490 @@ export function ReportPageOne({ caseData }: ReportPageOneProps) {
   const primaryMatch = lastGen?.brand || "Unknown"
   const primaryType = lastGen?.camera_type || "Unknown"
 
-  // Analysis results
-  const analysisResults = [
-    {
-      check: "Face Manipulation",
-      result:
-        details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.result === "suspicious"
-          ? "suspicious"
-          : "valid",
-      confidence:
-        details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0.0,
-    },
-    {
-      check: "AI-Generated Content",
-      result:
-        details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.result === "suspicious"
-          ? "suspicious"
-          : "valid",
-      confidence:
-        details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.confidence || 0.0,
-    },
-    {
-      check: "Eye Gaze Analysis",
-      result:
-        details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")?.result === "suspicious"
-          ? "suspicious"
-          : "valid",
-      confidence:
-        details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")?.confidence || 0.0,
-    },
-    {
-      check: "Voice Analysis",
-      result:
-        details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious"
-          ? "suspicious"
-          : "valid",
-      confidence: details?.voice_analysis?.[0]?.confidence || 0.0,
-    },
-    {
-      check: "Forensic Signatures",
-      result: details?.forensic_analysis?.some((f) => f.severity === "critical")
-        ? "critical"
-        : "valid",
-      confidence: details?.forensic_analysis?.some((f) => f.severity === "critical")
-        ? 0.94
-        : 0.0,
-    },
-  ]
+  // Build key metrics (max 4, non-technical)
+  const criticalCount =
+    details?.forensic_analysis?.filter((f) => f.severity === "critical").length || 0
+  const suspectCount =
+    details?.forensic_analysis?.filter((f) => f.severity === "suspect").length || 0
+  const totalFlags = criticalCount + suspectCount
 
-  const activeResults = analysisResults.filter(
-    (r) => r.confidence > 0
-  )
+  const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
+  const voiceResult = details?.voice_analysis?.[0]
 
-  // Key findings
-  const keyFindings: string[] = []
-  if (isSuspicious) {
-    const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
-    if (faceResult?.result === "suspicious") {
-      keyFindings.push(
-        `Face manipulation detected with ${(faceResult.confidence * 100).toFixed(1)}% confidence`
-      )
-    }
-    const eyeResult = details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")
-    if (eyeResult?.result === "suspicious") {
-      keyFindings.push(
-        `Eye gaze inconsistencies detected (${(eyeResult.confidence * 100).toFixed(1)}% confidence)`
-      )
-    }
-    if (details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Voice synthesis artifacts detected in audio track")
-    }
-    if (details?.forensic_analysis?.some((f) => f.severity === "critical")) {
-      keyFindings.push("File structure matches known AI generator signatures")
-    }
-  } else {
-    keyFindings.push("No face manipulation detected")
-    keyFindings.push("Content appears to be camera-original")
-    if (details?.voice_analysis && details.voice_analysis.length > 0) {
-      keyFindings.push("Voice patterns consistent with natural speech")
-    }
-    keyFindings.push("File structure matches authentic capture devices")
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok" }
+  const metrics: Metric[] = []
+
+  if (faceResult) {
+    metrics.push({
+      label: "Face Analysis",
+      value:
+        faceResult.result === "suspicious"
+          ? `${(faceResult.confidence * 100).toFixed(0)}% suspicious`
+          : "No issues found",
+      status: faceResult.result === "suspicious" ? "alert" : "ok",
+    })
   }
 
-  // Forensic severity summary
-  const criticalCount = details?.forensic_analysis?.filter((f) => f.severity === "critical").length || 0
-  const suspectCount = details?.forensic_analysis?.filter((f) => f.severity === "suspect").length || 0
+  if (voiceResult) {
+    const voiceSuspicious = voiceResult.result?.toLowerCase() === "suspicious"
+    metrics.push({
+      label: "Voice Analysis",
+      value: voiceSuspicious
+        ? `${(voiceResult.confidence * 100).toFixed(0)}% suspicious`
+        : "No issues found",
+      status: voiceSuspicious ? "alert" : "ok",
+    })
+  }
 
-  // Verdict config
-  const verdictConfig = isSuspicious
-    ? {
-        label: "SUSPICIOUS",
-        sublabel: "Potential Manipulation Detected",
-        bgColor: "#FEF2F2",
-        borderColor: "#FECACA",
-        badgeBg: "#DC2626",
-        textColor: "#DC2626",
-        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
-      }
+  if (totalFlags > 0) {
+    metrics.push({
+      label: "Forensic Flags",
+      value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} flagged`,
+      status: criticalCount > 0 ? "alert" : "warn",
+    })
+  } else {
+    metrics.push({
+      label: "Forensic Flags",
+      value: "None identified",
+      status: "ok",
+    })
+  }
+
+  metrics.push({
+    label: "Processing Pipeline",
+    value:
+      pipeline.length > 1
+        ? `${pipeline.length} stages detected`
+        : pipeline.length === 1
+          ? `Single source: ${pipeline[0]?.brand}`
+          : "Unknown",
+    status: pipeline.length > 2 ? "warn" : "ok",
+  })
+
+  // Key findings (3-5 bullets, plain language, what not how)
+  const keyFindings: string[] = []
+  if (isSuspicious) {
+    if (faceResult?.result === "suspicious") {
+      keyFindings.push(
+        "Facial features show signs consistent with synthetic manipulation"
+      )
+    }
+    const eyeResult = details?.pixel_analysis?.find(
+      (p) => p.type === "eye_gaze_manipulation"
+    )
+    if (eyeResult?.result === "suspicious") {
+      keyFindings.push("Eye gaze patterns appear inconsistent with natural movement")
+    }
+    if (voiceResult?.result?.toLowerCase() === "suspicious") {
+      keyFindings.push("Audio track contains patterns associated with voice synthesis")
+    }
+    if (criticalCount > 0) {
+      keyFindings.push(
+        "File structure matches signatures of known AI generation tools"
+      )
+    }
+    if (pipeline.length > 2) {
+      keyFindings.push("Media has passed through multiple processing stages")
+    }
+  } else {
+    keyFindings.push("No indicators of facial manipulation were identified")
+    if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
+      keyFindings.push("Voice patterns are consistent with natural speech")
+    }
+    keyFindings.push("File structure is consistent with authentic capture devices")
+    if (pipeline.length <= 1) {
+      keyFindings.push("Media appears to originate from a single source")
+    }
+  }
+
+  // Verdict appearance
+  const verdictColor = isSuspicious
+    ? "#B91C1C"
     : isUncertain
-      ? {
-          label: "UNCERTAIN",
-          sublabel: "Inconclusive Results",
-          bgColor: "#FFFBEB",
-          borderColor: "#FDE68A",
-          badgeBg: "#D97706",
-          textColor: "#D97706",
-          icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
-        }
-      : {
-          label: "VALID",
-          sublabel: "No Manipulation Detected",
-          bgColor: "#F0FDF4",
-          borderColor: "#BBF7D0",
-          badgeBg: "#16A34A",
-          textColor: "#16A34A",
-          icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
-        }
+      ? "#B45309"
+      : "#15803D"
+  const verdictBg = isSuspicious
+    ? "#FEF2F2"
+    : isUncertain
+      ? "#FFFBEB"
+      : "#F0FDF4"
+  const verdictBorder = isSuspicious
+    ? "#FECACA"
+    : isUncertain
+      ? "#FDE68A"
+      : "#BBF7D0"
+  const verdictLabel = isSuspicious
+    ? "Suspicious"
+    : isUncertain
+      ? "Uncertain"
+      : "Valid"
+  const verdictSubtext = isSuspicious
+    ? "Potential Manipulation Detected"
+    : isUncertain
+      ? "Inconclusive Analysis Results"
+      : "No Manipulation Detected"
+
+  const metricStatusColor = (s: "alert" | "warn" | "ok") =>
+    s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
+  const metricStatusBg = (s: "alert" | "warn" | "ok") =>
+    s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
 
   return (
     <div
       style={{
         width: "794px",
         height: "1123px",
-        padding: "44px 50px 40px",
+        padding: "48px 56px 44px",
         position: "relative",
-        background: "white",
+        background: "#ffffff",
         overflow: "hidden",
         boxSizing: "border-box",
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily:
+          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#1a1a1a",
         fontSize: "11px",
         lineHeight: "1.5",
       }}
     >
-      {/* Header */}
+      {/* ── 1. Report Header ── */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "24px",
-          paddingBottom: "14px",
+          paddingBottom: "16px",
           borderBottom: "2px solid #e5e7eb",
+          marginBottom: "28px",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div
             style={{
-              width: "30px",
-              height: "30px",
+              width: "28px",
+              height: "28px",
               background: "#4A7BF7",
-              borderRadius: "6px",
+              borderRadius: "5px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "white",
-              fontWeight: "bold",
-              fontSize: "11px",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: "10px",
             }}
           >
             DS
           </div>
-          <div style={{ fontSize: "17px", fontWeight: 600, color: "#4A7BF7" }}>DataSpike</div>
+          <span style={{ fontSize: "15px", fontWeight: 600, color: "#4A7BF7" }}>
+            DataSpike
+          </span>
         </div>
-        <div style={{ textAlign: "right", fontSize: "11px", color: "#6b7280" }}>
-          <div style={{ fontWeight: 600, color: "#1a1a1a", fontFamily: "monospace", fontSize: "12px" }}>
-            #{reportNumber}
-          </div>
-          <div>{reportDate}</div>
-        </div>
-      </div>
-
-      {/* Page Title */}
-      <div
-        style={{
-          fontSize: "16px",
-          fontWeight: 700,
-          color: "#111827",
-          marginBottom: "20px",
-          letterSpacing: "-0.01em",
-        }}
-      >
-        Deepfake Detection Report — Executive Summary
-      </div>
-
-      {/* Verdict + Case Info row */}
-      <div style={{ display: "flex", gap: "20px", marginBottom: "22px" }}>
-        {/* Verdict Card */}
-        <div
-          style={{
-            flex: "1",
-            padding: "20px",
-            borderRadius: "10px",
-            background: verdictConfig.bgColor,
-            border: `1px solid ${verdictConfig.borderColor}`,
-          }}
-        >
+        <div style={{ textAlign: "right" }}>
           <div
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "8px 14px",
-              borderRadius: "6px",
-              background: verdictConfig.badgeBg,
-              color: "white",
+              fontFamily: "monospace",
               fontWeight: 600,
               fontSize: "12px",
-              marginBottom: "14px",
+              color: "#1a1a1a",
             }}
           >
-            <span dangerouslySetInnerHTML={{ __html: verdictConfig.icon }} />
-            {verdictConfig.label}
+            #{reportNumber}
           </div>
-          <div style={{ fontSize: "11px", color: "#6b7280", marginBottom: "4px" }}>
-            {verdictConfig.sublabel}
+          <div style={{ fontSize: "10px", color: "#6b7280", marginTop: "2px" }}>
+            {reportDate}
           </div>
-          <div style={{ marginTop: "14px" }}>
-            <div style={{ fontSize: "11px", color: "#6b7280", marginBottom: "6px" }}>
+        </div>
+      </div>
+
+      {/* ── 2. Overall Verdict Block (most prominent) ── */}
+      <div
+        style={{
+          background: verdictBg,
+          border: `1.5px solid ${verdictBorder}`,
+          borderRadius: "10px",
+          padding: "24px 28px",
+          marginBottom: "24px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "7px 14px",
+                borderRadius: "6px",
+                background: verdictColor,
+                color: "#ffffff",
+                fontWeight: 700,
+                fontSize: "13px",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {verdictLabel.toUpperCase()}
+            </div>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "#4b5563",
+                marginTop: "10px",
+                fontWeight: 500,
+              }}
+            >
+              {verdictSubtext}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "4px" }}>
               Confidence Score
             </div>
             <div
               style={{
-                fontSize: "32px",
+                fontSize: "36px",
                 fontWeight: 700,
-                color: verdictConfig.textColor,
+                color: verdictColor,
                 lineHeight: 1,
-                marginBottom: "10px",
               }}
             >
-              {confidencePercent}%
+              {confidencePercent}
+              <span style={{ fontSize: "18px", fontWeight: 600 }}>%</span>
+            </div>
+          </div>
+        </div>
+        {/* Confidence bar */}
+        <div
+          style={{
+            marginTop: "16px",
+            height: "6px",
+            background: "rgba(0,0,0,0.06)",
+            borderRadius: "3px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${confidencePercent}%`,
+              background: verdictColor,
+              borderRadius: "3px",
+            }}
+          />
+        </div>
+        {/* Inline case reference */}
+        <div
+          style={{
+            display: "flex",
+            gap: "24px",
+            marginTop: "14px",
+            fontSize: "10px",
+            color: "#6b7280",
+          }}
+        >
+          <span>
+            Case{" "}
+            <span style={{ fontFamily: "monospace", color: "#374151" }}>
+              {details?.project_info?.case_id
+                ? details.project_info.case_id.split("-")[0]
+                : caseData.id}
+            </span>
+          </span>
+          <span>
+            {caseData.content_type} &middot;{" "}
+            {formatBytes(caseData.file_size_bytes)}
+          </span>
+          <span>Submitted {formatDate(caseData.created_at)}</span>
+          <span>
+            Engine v{details?.project_info?.verify_version || "2.374"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── 3. Key Metrics Summary ── */}
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          marginBottom: "24px",
+        }}
+      >
+        {metrics.slice(0, 4).map((m, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              padding: "14px 16px",
+              background: metricStatusBg(m.status),
+              border: `1px solid ${
+                m.status === "alert"
+                  ? "#FECACA"
+                  : m.status === "warn"
+                    ? "#FDE68A"
+                    : "#BBF7D0"
+              }`,
+              borderRadius: "8px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#6b7280",
+                fontWeight: 500,
+                marginBottom: "6px",
+                textTransform: "uppercase",
+                letterSpacing: "0.3px",
+              }}
+            >
+              {m.label}
             </div>
             <div
               style={{
-                height: "8px",
-                background: "#e5e7eb",
-                borderRadius: "4px",
-                overflow: "hidden",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: metricStatusColor(m.status),
+                lineHeight: "1.3",
               }}
             >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${confidencePercent}%`,
-                  background: verdictConfig.badgeBg,
-                  borderRadius: "4px",
-                }}
-              />
+              {m.value}
             </div>
           </div>
-        </div>
-
-        {/* Case Identification */}
-        <div
-          style={{
-            flex: "1",
-            padding: "20px",
-            borderRadius: "10px",
-            background: "#f8fafc",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              color: "#374151",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: "14px",
-            }}
-          >
-            Case Identification
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <CaseInfoRow label="Case ID" value={details?.project_info?.case_id?.split("-")[0] + "..." || caseData.id} mono />
-            <CaseInfoRow label="File Type" value={caseData.content_type} />
-            <CaseInfoRow
-              label="File Size"
-              value={formatBytes(caseData.file_size_bytes)}
-            />
-            <CaseInfoRow label="Submitted" value={formatDate(caseData.created_at)} />
-            <CaseInfoRow label="Job Type" value={caseData.job_type.replace("_", " ")} />
-            <CaseInfoRow
-              label="Engine Version"
-              value={`v${details?.project_info?.verify_version || "2.374"}`}
-            />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Analysis Results Table */}
+      {/* ── 4. Suspicious Frame Highlight ── */}
       <div
         style={{
-          fontSize: "12px",
-          fontWeight: 600,
-          color: "#374151",
-          marginBottom: "10px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
+          marginBottom: "24px",
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          overflow: "hidden",
         }}
       >
-        Analysis Results
-      </div>
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          marginBottom: "20px",
-        }}
-      >
-        <thead>
-          <tr>
-            <th
+        <div
+          style={{
+            padding: "10px 16px",
+            background: "#f8fafc",
+            borderBottom: "1px solid #e5e7eb",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "#374151",
+            textTransform: "uppercase",
+            letterSpacing: "0.3px",
+          }}
+        >
+          Analyzed Frame &mdash; Heat Map Overlay
+        </div>
+        <div
+          style={{
+            height: "160px",
+            background: "#f9fafb",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "32px",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div
               style={{
-                background: "#f8fafc",
-                padding: "9px 14px",
-                textAlign: "left",
-                fontWeight: 600,
-                fontSize: "10px",
-                color: "#4b5563",
-                border: "1px solid #e5e7eb",
-                textTransform: "uppercase",
-                letterSpacing: "0.3px",
-              }}
-            >
-              Check
-            </th>
-            <th
-              style={{
-                background: "#f8fafc",
-                padding: "9px 14px",
-                textAlign: "left",
-                fontWeight: 600,
-                fontSize: "10px",
-                color: "#4b5563",
-                border: "1px solid #e5e7eb",
-                textTransform: "uppercase",
-                letterSpacing: "0.3px",
-                width: "110px",
-              }}
-            >
-              Result
-            </th>
-            <th
-              style={{
-                background: "#f8fafc",
-                padding: "9px 14px",
-                textAlign: "right",
-                fontWeight: 600,
-                fontSize: "10px",
-                color: "#4b5563",
-                border: "1px solid #e5e7eb",
-                textTransform: "uppercase",
-                letterSpacing: "0.3px",
                 width: "100px",
+                height: "120px",
+                background: "#f3f4f6",
+                border: "1px dashed #d1d5db",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              Confidence
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {activeResults.map((r, i) => (
-            <tr key={i}>
-              <td
-                style={{
-                  padding: "9px 14px",
-                  border: "1px solid #e5e7eb",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                }}
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9ca3af"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {r.check}
-              </td>
-              <td style={{ padding: "9px 14px", border: "1px solid #e5e7eb" }}>
-                <ResultBadge result={r.result} />
-              </td>
-              <td
-                style={{
-                  padding: "9px 14px",
-                  border: "1px solid #e5e7eb",
-                  fontSize: "11px",
-                  textAlign: "right",
-                  fontFamily: "monospace",
-                  fontWeight: 600,
-                  color:
-                    r.result === "suspicious" || r.result === "critical"
-                      ? "#DC2626"
-                      : "#16A34A",
-                }}
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+            <div style={{ fontSize: "9px", color: "#9ca3af", marginTop: "6px" }}>
+              Original Frame
+            </div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                width: "100px",
+                height: "120px",
+                background: isSuspicious
+                  ? "linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.15) 100%)"
+                  : "#f3f4f6",
+                border: `1px dashed ${isSuspicious ? "#fca5a5" : "#d1d5db"}`,
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={isSuspicious ? "#ef4444" : "#9ca3af"}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {(r.confidence * 100).toFixed(1)}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </div>
+            <div
+              style={{
+                fontSize: "9px",
+                color: isSuspicious ? "#B91C1C" : "#9ca3af",
+                marginTop: "6px",
+              }}
+            >
+              Heat Map Overlay
+            </div>
+          </div>
+          <div
+            style={{
+              maxWidth: "260px",
+              fontSize: "10px",
+              color: "#6b7280",
+              lineHeight: "1.6",
+            }}
+          >
+            {isSuspicious
+              ? "Highlighted regions indicate areas where the analysis detected anomalies consistent with synthetic generation or manipulation. Red intensity corresponds to confidence level."
+              : "No significant anomalies were detected. The frame analysis did not identify regions of concern."}
+          </div>
+        </div>
+      </div>
 
-      {/* Two-column bottom section: Key Findings + Source Attribution */}
-      <div style={{ display: "flex", gap: "20px", marginBottom: "16px" }}>
+      {/* ── 5. Key Findings + 6. Attribution side-by-side ── */}
+      <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
         {/* Key Findings */}
         <div
           style={{
-            flex: "1",
+            flex: 3,
+            padding: "16px 20px",
             background: "#f8fafc",
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            padding: "16px 18px",
           }}
         >
           <div
@@ -437,49 +513,52 @@ export function ReportPageOne({ caseData }: ReportPageOneProps) {
               fontWeight: 600,
               color: "#374151",
               textTransform: "uppercase",
-              letterSpacing: "0.5px",
+              letterSpacing: "0.3px",
               marginBottom: "10px",
             }}
           >
             Key Findings
           </div>
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {keyFindings.map((f, i) => (
+            {keyFindings.slice(0, 5).map((f, i) => (
               <li
                 key={i}
                 style={{
                   fontSize: "11px",
-                  color: "#4b5563",
-                  padding: "3px 0",
-                  paddingLeft: "14px",
+                  color: "#374151",
+                  padding: "4px 0",
+                  paddingLeft: "16px",
                   position: "relative",
-                  lineHeight: "1.5",
+                  lineHeight: "1.6",
                 }}
               >
                 <span
                   style={{
                     position: "absolute",
                     left: 0,
-                    color: isSuspicious ? "#DC2626" : "#16A34A",
-                    fontWeight: 700,
+                    top: "4px",
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: isSuspicious ? "#EF4444" : "#22C55E",
+                    display: "inline-block",
+                    marginTop: "5px",
                   }}
-                >
-                  {isSuspicious ? "!" : "-"}
-                </span>
+                />
                 {f}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Source Attribution */}
+        {/* Primary Match / Attribution */}
         <div
           style={{
-            flex: "1",
+            flex: 2,
+            padding: "16px 20px",
             background: "#f8fafc",
             border: "1px solid #e5e7eb",
             borderRadius: "8px",
-            padding: "16px 18px",
           }}
         >
           <div
@@ -488,126 +567,130 @@ export function ReportPageOne({ caseData }: ReportPageOneProps) {
               fontWeight: 600,
               color: "#374151",
               textTransform: "uppercase",
-              letterSpacing: "0.5px",
+              letterSpacing: "0.3px",
               marginBottom: "10px",
             }}
           >
-            Source Attribution
+            Attribution
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div>
-              <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "2px" }}>
-                Primary Match
-              </div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  color: isSuspicious ? "#DC2626" : "#16A34A",
-                }}
-              >
-                {primaryMatch}
-              </div>
-              <div style={{ fontSize: "10px", color: "#6b7280" }}>{primaryType}</div>
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "2px" }}>
+              Primary Match
             </div>
-            {(criticalCount > 0 || suspectCount > 0) && (
+            <div
+              style={{
+                fontSize: "15px",
+                fontWeight: 700,
+                color: "#1a1a1a",
+              }}
+            >
+              {primaryMatch}
+            </div>
+            <div style={{ fontSize: "10px", color: "#6b7280" }}>{primaryType}</div>
+          </div>
+          {pipeline.length > 1 && (
+            <div style={{ marginTop: "10px" }}>
               <div
                 style={{
-                  marginTop: "4px",
-                  padding: "8px 10px",
-                  background: isSuspicious ? "#FEF2F2" : "#F0FDF4",
-                  borderRadius: "4px",
-                  border: `1px solid ${isSuspicious ? "#FECACA" : "#BBF7D0"}`,
+                  fontSize: "10px",
+                  color: "#6b7280",
+                  marginBottom: "6px",
                 }}
               >
-                <div style={{ fontSize: "10px", color: "#4b5563" }}>
-                  {criticalCount > 0 && (
-                    <span>
-                      <strong style={{ color: "#DC2626" }}>{criticalCount} critical</strong>
-                      {suspectCount > 0 ? ", " : " "}
-                    </span>
-                  )}
-                  {suspectCount > 0 && (
-                    <span>
-                      <strong style={{ color: "#D97706" }}>{suspectCount} suspect</strong>{" "}
-                    </span>
-                  )}
-                  <span>forensic signature{criticalCount + suspectCount !== 1 ? "s" : ""} identified</span>
-                </div>
+                Media Pipeline
               </div>
-            )}
-            {pipeline.length > 1 && (
-              <div style={{ marginTop: "2px" }}>
-                <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "4px" }}>
-                  Processing Pipeline
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {pipeline.map((p, i) => (
-                    <span key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "3px 8px",
-                          background:
-                            p.camera_type === "AI Generator"
-                              ? "#FEE2E2"
-                              : p.camera_type === "Encoder"
-                                ? "#FEF3C7"
-                                : "#DCFCE7",
-                          color:
-                            p.camera_type === "AI Generator"
-                              ? "#DC2626"
-                              : p.camera_type === "Encoder"
-                                ? "#D97706"
-                                : "#16A34A",
-                          borderRadius: "3px",
-                          fontSize: "9px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {p.brand}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {pipeline.map((p, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 7px",
+                        borderRadius: "3px",
+                        fontSize: "9px",
+                        fontWeight: 600,
+                        background:
+                          p.camera_type === "AI Generator"
+                            ? "#FEE2E2"
+                            : p.camera_type === "Encoder"
+                              ? "#FEF3C7"
+                              : "#DCFCE7",
+                        color:
+                          p.camera_type === "AI Generator"
+                            ? "#B91C1C"
+                            : p.camera_type === "Encoder"
+                              ? "#B45309"
+                              : "#15803D",
+                      }}
+                    >
+                      {p.brand}
+                    </span>
+                    {i < pipeline.length - 1 && (
+                      <span style={{ color: "#9ca3af", fontSize: "10px" }}>
+                        {"\u203A"}
                       </span>
-                      {i < pipeline.length - 1 && (
-                        <span style={{ color: "#9ca3af", fontSize: "10px" }}>{">"}</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
+                    )}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          )}
+          <div
+            style={{
+              marginTop: "12px",
+              padding: "8px 10px",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "4px",
+              fontSize: "9px",
+              color: "#9ca3af",
+              lineHeight: "1.5",
+              fontStyle: "italic",
+            }}
+          >
+            Attribution is based on structural signature matching and does not
+            constitute a definitive identification of origin.
           </div>
         </div>
       </div>
 
-      {/* Disclaimer line */}
+      {/* ── Disclaimer ── */}
       <div
         style={{
           fontSize: "9px",
           color: "#9ca3af",
           lineHeight: "1.5",
-          padding: "10px 0 0",
+          paddingTop: "10px",
           borderTop: "1px solid #f3f4f6",
         }}
       >
-        This report was generated automatically by DataSpike v{details?.project_info?.verify_version || "2.374"}.
-        Results are based on analysis of the submitted media and should be interpreted alongside
-        additional context. This document does not constitute legal advice.
+        This report was generated automatically by DataSpike v
+        {details?.project_info?.verify_version || "2.374"}. Results should be
+        interpreted alongside additional investigative context. This document
+        does not constitute legal advice.
       </div>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <div
         style={{
           position: "absolute",
           bottom: "30px",
-          left: "50px",
-          right: "50px",
+          left: "56px",
+          right: "56px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -618,61 +701,11 @@ export function ReportPageOne({ caseData }: ReportPageOneProps) {
         }}
       >
         <span>DataSpike Deepfake Detection Report</span>
-        <span>CONFIDENTIAL</span>
+        <span style={{ letterSpacing: "1px", fontWeight: 600 }}>
+          CONFIDENTIAL
+        </span>
         <span>Page 1 of 6</span>
       </div>
     </div>
-  )
-}
-
-function CaseInfoRow({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "10px", color: "#6b7280" }}>{label}</span>
-      <span
-        style={{
-          fontSize: "11px",
-          fontWeight: 500,
-          color: "#1a1a1a",
-          fontFamily: mono ? "monospace" : "inherit",
-          textTransform: mono ? "none" : "capitalize",
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
-
-function ResultBadge({ result }: { result: string }) {
-  const config =
-    result === "suspicious"
-      ? { bg: "#FEE2E2", color: "#DC2626", label: "Suspicious" }
-      : result === "critical"
-        ? { bg: "#FEE2E2", color: "#DC2626", label: "Critical" }
-        : { bg: "#DCFCE7", color: "#16A34A", label: "Valid" }
-
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "3px 10px",
-        borderRadius: "4px",
-        fontSize: "10px",
-        fontWeight: 600,
-        background: config.bg,
-        color: config.color,
-      }}
-    >
-      {config.label}
-    </span>
   )
 }
