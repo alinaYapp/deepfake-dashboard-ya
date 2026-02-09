@@ -32,6 +32,7 @@ function generateReportHTML(caseData: Case): string {
   // Key metrics for Page 1 (max 4, plain language)
   const totalFlags = criticalCount + suspectCount
   const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
+  const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
   const voiceResult = details?.voice_analysis?.[0]
 
   type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
@@ -94,7 +95,6 @@ function generateReportHTML(caseData: Case): string {
     heatZones.push({ id: "face", label: "Facial boundary", x: 25, y: 28, w: 50, h: 52,
       intensity: faceResult.confidence > 0.8 ? "high" : faceResult.confidence > 0.5 ? "medium" : "low" })
   }
-  const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
   if (eyeResult?.result === "suspicious") {
     const eyeInt = eyeResult.confidence > 0.7 ? "high" as const : eyeResult.confidence > 0.4 ? "medium" as const : "low" as const
     heatZones.push({ id: "eye-l", label: "Left eye", x: 30, y: 32, w: 16, h: 10, intensity: eyeInt })
@@ -167,8 +167,7 @@ function generateReportHTML(caseData: Case): string {
     if (faceResult?.result === "suspicious") {
       keyFindings.push("Facial region analysis suggests patterns consistent with synthetic alteration")
     }
-    const eyeResult2 = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
-    if (eyeResult2?.result === "suspicious") {
+    if (eyeResult?.result === "suspicious") {
       keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
     }
     if (voiceResult?.result?.toLowerCase() === "suspicious") {
