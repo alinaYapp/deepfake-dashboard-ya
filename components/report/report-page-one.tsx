@@ -1,10 +1,12 @@
 import { type Case, formatBytes, formatDate } from "@/lib/mock-data"
+import { HeatMapBlock } from "./heat-map-block"
 
 interface ReportPageOneProps {
   caseData: Case
+  isEnterprise?: boolean
 }
 
-export function ReportPageOne({ caseData }: ReportPageOneProps) {
+export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOneProps) {
   const reportNumber = caseData.id.replace("chk_", "").toUpperCase()
   const reportDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -376,124 +378,13 @@ export function ReportPageOne({ caseData }: ReportPageOneProps) {
         ))}
       </div>
 
-      {/* ── 4. Suspicious Frame Highlight ── */}
-      <div
-        style={{
-          marginBottom: "24px",
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            padding: "10px 16px",
-            background: "#f8fafc",
-            borderBottom: "1px solid #e5e7eb",
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "#374151",
-            textTransform: "uppercase",
-            letterSpacing: "0.3px",
-          }}
-        >
-          Analyzed Frame &mdash; Heat Map Overlay
-        </div>
-        <div
-          style={{
-            height: "160px",
-            background: "#f9fafb",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "32px",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: "100px",
-                height: "120px",
-                background: "#f3f4f6",
-                border: "1px dashed #d1d5db",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#9ca3af"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </div>
-            <div style={{ fontSize: "9px", color: "#9ca3af", marginTop: "6px" }}>
-              Original Frame
-            </div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: "100px",
-                height: "120px",
-                background: isSuspicious
-                  ? "linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.15) 100%)"
-                  : "#f3f4f6",
-                border: `1px dashed ${isSuspicious ? "#fca5a5" : "#d1d5db"}`,
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={isSuspicious ? "#ef4444" : "#9ca3af"}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-            <div
-              style={{
-                fontSize: "9px",
-                color: isSuspicious ? "#B91C1C" : "#9ca3af",
-                marginTop: "6px",
-              }}
-            >
-              Heat Map Overlay
-            </div>
-          </div>
-          <div
-            style={{
-              maxWidth: "260px",
-              fontSize: "10px",
-              color: "#6b7280",
-              lineHeight: "1.6",
-            }}
-          >
-            {isSuspicious
-              ? "Highlighted regions indicate areas where the analysis detected anomalies consistent with synthetic generation or manipulation. Red intensity corresponds to confidence level."
-              : "No significant anomalies were detected. The frame analysis did not identify regions of concern."}
-          </div>
-        </div>
-      </div>
+      {/* ── 4. Frame Analysis Heat Map ── */}
+      <HeatMapBlock
+        isSuspicious={isSuspicious}
+        isEnterprise={isEnterprise}
+        pixelAnalysis={details?.pixel_analysis}
+        confidencePercent={confidencePercent}
+      />
 
       {/* ── 5. Key Findings + 6. Attribution side-by-side ── */}
       <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>

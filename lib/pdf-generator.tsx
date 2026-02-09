@@ -91,6 +91,31 @@ function generateReportHTML(caseData: Case): string {
   const metricBg = (s: string) => s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
   const metricBorder = (s: string) => s === "alert" ? "#FECACA" : s === "warn" ? "#FDE68A" : "#BBF7D0"
 
+  // Heat map zone computation
+  type HeatZone = { id: string; label: string; x: number; y: number; w: number; h: number; intensity: "high" | "medium" | "low" }
+  const heatZones: HeatZone[] = []
+  if (faceResult?.result === "suspicious") {
+    heatZones.push({ id: "face", label: "Facial boundary", x: 25, y: 28, w: 50, h: 52,
+      intensity: faceResult.confidence > 0.8 ? "high" : faceResult.confidence > 0.5 ? "medium" : "low" })
+  }
+  const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
+  if (eyeResult?.result === "suspicious") {
+    const eyeInt = eyeResult.confidence > 0.7 ? "high" as const : eyeResult.confidence > 0.4 ? "medium" as const : "low" as const
+    heatZones.push({ id: "eye-l", label: "Left eye", x: 30, y: 32, w: 16, h: 10, intensity: eyeInt })
+    heatZones.push({ id: "eye-r", label: "Right eye", x: 54, y: 32, w: 16, h: 10, intensity: eyeInt })
+  }
+  const hasZones = isSuspicious && heatZones.length > 0
+
+  const zoneGradientId = (z: HeatZone) => z.intensity === "high" ? "zoneHigh" : z.intensity === "medium" ? "zoneMedium" : "zoneLow"
+  const zoneStroke = (z: HeatZone) => z.intensity === "high" ? "rgba(220,38,38,0.6)" : z.intensity === "medium" ? "rgba(234,88,12,0.5)" : "rgba(250,204,21,0.45)"
+  const zoneSvgEllipses = heatZones.map(z => {
+    const cx = (z.x + z.w / 2) * 1.6
+    const cy = (z.y + z.h / 2) * 1.2
+    const rx = (z.w / 2) * 1.6
+    const ry = (z.h / 2) * 1.2
+    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx * 1.15}" ry="${ry * 1.15}" fill="url(#${zoneGradientId(z)})" /><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${zoneStroke(z)}" stroke-width="1" stroke-dasharray="3,2" />`
+  }).join('')
+
   // Key findings (plain language, what not how)
   const keyFindings: string[] = []
   if (isSuspicious) {
@@ -659,28 +684,61 @@ function generateReportHTML(caseData: Case): string {
       </div>`).join('')}
     </div>
 
-    <!-- 4. Suspicious Frame Highlight -->
+    <!-- 4. Frame Analysis Heat Map -->
     <div style="margin-bottom: 24px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-      <div style="padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px;">
-        Analyzed Frame &mdash; Heat Map Overlay
+      <div style="padding: 8px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px;">Frame Analysis</span>
+        ${isSuspicious
+          ? `<span style="font-size: 9px; font-weight: 500; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 3px;">${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} flagged</span>`
+          : `<span style="font-size: 9px; font-weight: 500; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 2px 8px; border-radius: 3px;">No regions flagged</span>`}
       </div>
-      <div style="height: 160px; background: #f9fafb; display: flex; align-items: center; justify-content: center; gap: 32px;">
-        <div style="text-align: center;">
-          <div style="width: 100px; height: 120px; background: #f3f4f6; border: 1px dashed #d1d5db; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          </div>
-          <div style="font-size: 9px; color: #9ca3af; margin-top: 6px;">Original Frame</div>
+      <div style="display: flex; background: #f9fafb;">
+        <!-- Source frame -->
+        <div style="flex: 1; border-right: 1px solid #e5e7eb; padding: 16px; text-align: center;">
+          <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
+            <defs><linearGradient id="frameBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
+            <rect width="160" height="120" fill="url(#frameBg)"/>
+            <ellipse cx="80" cy="46" rx="22" ry="26" fill="#4b5563"/>
+            <ellipse cx="80" cy="110" rx="40" ry="30" fill="#4b5563"/>
+            <line x1="0" y1="40" x2="160" y2="40" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+            <line x1="0" y1="80" x2="160" y2="80" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+            <line x1="53" y1="0" x2="53" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+            <line x1="107" y1="0" x2="107" y2="120" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+          </svg>
+          <div style="font-size: 9px; color: #6b7280; margin-top: 8px; font-weight: 500;">Source Frame</div>
         </div>
-        <div style="text-align: center;">
-          <div style="width: 100px; height: 120px; background: ${isSuspicious ? 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.15) 100%)' : '#f3f4f6'}; border: 1px dashed ${isSuspicious ? '#fca5a5' : '#d1d5db'}; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${isSuspicious ? '#ef4444' : '#9ca3af'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-          </div>
-          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#9ca3af'}; margin-top: 6px;">Heat Map Overlay</div>
+        <!-- Heat map overlay -->
+        <div style="flex: 1; border-right: 1px solid #e5e7eb; padding: 16px; text-align: center;">
+          <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
+            <defs>
+              <linearGradient id="heatBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+              <radialGradient id="zoneHigh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(220,38,38,0.55)"/><stop offset="50%" stop-color="rgba(234,88,12,0.3)"/><stop offset="100%" stop-color="rgba(250,204,21,0.05)"/></radialGradient>
+              <radialGradient id="zoneMedium" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(234,88,12,0.4)"/><stop offset="50%" stop-color="rgba(250,204,21,0.2)"/><stop offset="100%" stop-color="rgba(250,204,21,0.02)"/></radialGradient>
+              <radialGradient id="zoneLow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(250,204,21,0.3)"/><stop offset="60%" stop-color="rgba(250,204,21,0.1)"/><stop offset="100%" stop-color="rgba(250,204,21,0.0)"/></radialGradient>
+            </defs>
+            <rect width="160" height="120" fill="url(#heatBg)"/>
+            <ellipse cx="80" cy="46" rx="22" ry="26" fill="#374151"/>
+            <ellipse cx="80" cy="110" rx="40" ry="30" fill="#374151"/>
+            ${hasZones ? zoneSvgEllipses : ''}
+            ${!isSuspicious ? '<rect x="52" y="25" width="56" height="48" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
+          </svg>
+          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 8px; font-weight: 500;">${isSuspicious ? 'Anomaly Overlay' : 'Analysis Overlay'}</div>
         </div>
-        <div style="max-width: 260px; font-size: 10px; color: #6b7280; line-height: 1.6;">
-          ${isSuspicious
-            ? 'Highlighted regions indicate areas where the analysis detected anomalies consistent with synthetic generation or manipulation. Red intensity corresponds to confidence level.'
-            : 'No significant anomalies were detected. The frame analysis did not identify regions of concern.'}
+        <!-- Legend + caption -->
+        <div style="flex: 1.2; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 8px; line-height: 1.4;">${isSuspicious ? 'Regions of Interest Identified' : 'No Anomalies Detected'}</div>
+            <div style="font-size: 10px; color: #4b5563; line-height: 1.6; margin-bottom: 12px;">${isSuspicious ? 'Color-coded regions indicate areas where analysis detected patterns inconsistent with authentic media. Warmer colors represent higher anomaly confidence.' : 'Frame analysis did not identify regions exhibiting manipulation patterns. The scan area is outlined for reference.'}</div>
+          </div>
+          ${isSuspicious ? `<div style="margin-bottom: 12px;">
+            <div style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px;">Intensity Scale</div>
+            <div style="display: flex; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(220,38,38,0.15); border: 1.5px solid #DC2626;"></div><span style="font-size: 9px; color: #DC2626; font-weight: 500;">High</span></div>
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(234,88,12,0.12); border: 1.5px solid #EA580C;"></div><span style="font-size: 9px; color: #EA580C; font-weight: 500;">Medium</span></div>
+              <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 9px; color: #CA8A04; font-weight: 500;">Low</span></div>
+            </div>
+          </div>` : ''}
+          <div style="font-size: 8px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 8px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data or direct evidence of manipulation.</div>
         </div>
       </div>
     </div>

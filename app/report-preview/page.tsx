@@ -10,6 +10,7 @@ const casesWithDetails = mockCases.filter((c) => c.details)
 
 export default function ReportPreviewPage() {
   const [caseIndex, setCaseIndex] = useState(0)
+  const [isEnterprise, setIsEnterprise] = useState(true)
   const currentCase = casesWithDetails[caseIndex]
 
   return (
@@ -48,6 +49,25 @@ export default function ReportPreviewPage() {
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
+
+        <div className="w-px h-6 bg-[#d1d5db] mx-1" />
+
+        <Button
+          variant={isEnterprise ? "default" : "outline"}
+          size="sm"
+          onClick={() => setIsEnterprise(true)}
+          className={isEnterprise ? "bg-[#4A7BF7] text-[#ffffff] hover:bg-[#3b6ae0]" : "bg-[#ffffff] text-[#374151] border-[#d1d5db]"}
+        >
+          Enterprise
+        </Button>
+        <Button
+          variant={!isEnterprise ? "default" : "outline"}
+          size="sm"
+          onClick={() => setIsEnterprise(false)}
+          className={!isEnterprise ? "bg-[#4A7BF7] text-[#ffffff] hover:bg-[#3b6ae0]" : "bg-[#ffffff] text-[#374151] border-[#d1d5db]"}
+        >
+          Default
+        </Button>
       </div>
       <div
         className="bg-[#ffffff] shadow-lg"
@@ -57,7 +77,7 @@ export default function ReportPreviewPage() {
           position: "relative",
         }}
       >
-        <ReportPageOne caseData={currentCase} />
+        <ReportPageOne caseData={currentCase} isEnterprise={isEnterprise} />
       </div>
     </div>
   )
