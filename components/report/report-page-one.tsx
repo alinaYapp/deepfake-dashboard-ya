@@ -72,15 +72,23 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
     })
   }
 
+  // Metadata & file analysis summary
+  const integrityOk =
+    details?.structural_consistency?.modification_tests === "passed" &&
+    details?.structural_consistency?.validation_tests === "passed"
+  const hasIntegrityData = !!details?.structural_consistency
+  const hasMetadata = !!details?.decoded_metadata
+
   metrics.push({
-    label: "Processing Pipeline",
-    value:
-      pipeline.length > 1
-        ? `${pipeline.length} stages observed`
-        : pipeline.length === 1
-          ? `Single source indicated: ${pipeline[0]?.brand}`
-          : "Undetermined",
-    status: pipeline.length > 2 ? "warn" : "ok",
+    label: "File & Metadata",
+    value: hasIntegrityData
+      ? integrityOk
+        ? "Structure consistent"
+        : "Integrity concerns noted"
+      : hasMetadata
+        ? "Metadata extracted"
+        : "Limited data available",
+    status: hasIntegrityData ? (integrityOk ? "ok" : "alert") : "ok",
   })
 
   // Key findings (3-5 bullets, probabilistic language)
@@ -105,8 +113,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
         "File metadata exhibits structural similarities to known AI generation tool signatures"
       )
     }
-    if (pipeline.length > 2) {
-      keyFindings.push("Media appears to have been processed through multiple intermediate stages")
+    if (!integrityOk && hasIntegrityData) {
+      keyFindings.push("File structure exhibits characteristics inconsistent with unmodified media containers")
     }
   } else {
     keyFindings.push("No indicators of facial manipulation were observed in this analysis")
@@ -114,8 +122,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
       keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
     }
     keyFindings.push("File structure is consistent with known authentic capture device signatures")
-    if (pipeline.length <= 1) {
-      keyFindings.push("Available metadata suggests a single origination source")
+    if (integrityOk) {
+      keyFindings.push("File metadata and container structure are consistent with expected encoding standards")
     }
   }
 
@@ -446,7 +454,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
           </ul>
         </div>
 
-        {/* Primary Match / Attribution */}
+        {/* Attribution */}
         <div
           style={{
             flex: 2,
@@ -468,7 +476,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
           >
             Attribution
           </div>
-          <div style={{ marginBottom: "8px" }}>
+          <div style={{ marginBottom: "10px" }}>
             <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "2px" }}>
               Closest Structural Match
             </div>
@@ -483,70 +491,27 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             </div>
             <div style={{ fontSize: "10px", color: "#6b7280" }}>{primaryType}</div>
           </div>
-          {pipeline.length > 1 && (
-            <div style={{ marginTop: "10px" }}>
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "#6b7280",
-                  marginBottom: "6px",
-                }}
-              >
-                Observed Media Pipeline
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  flexWrap: "wrap",
-                }}
-              >
-                {pipeline.map((p, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "2px 7px",
-                        borderRadius: "3px",
-                        fontSize: "9px",
-                        fontWeight: 600,
-                        background:
-                          p.camera_type === "AI Generator"
-                            ? "#FEE2E2"
-                            : p.camera_type === "Encoder"
-                              ? "#FEF3C7"
-                              : "#DCFCE7",
-                        color:
-                          p.camera_type === "AI Generator"
-                            ? "#B91C1C"
-                            : p.camera_type === "Encoder"
-                              ? "#B45309"
-                              : "#15803D",
-                      }}
-                    >
-                      {p.brand}
-                    </span>
-                    {i < pipeline.length - 1 && (
-                      <span style={{ color: "#9ca3af", fontSize: "10px" }}>
-                        {"\u203A"}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              </div>
+          {/* Evidence basis */}
+          <div style={{ marginTop: "6px" }}>
+            <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "6px", fontWeight: 600 }}>
+              Evidence Basis
             </div>
-          )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              {[
+                { label: "Metadata structure", desc: hasMetadata ? "EXIF / container analyzed" : "Limited data" },
+                { label: "Encoding characteristics", desc: details?.decoded_metadata?.general?.writing_application || "Standard encoding" },
+                { label: "File integrity", desc: hasIntegrityData ? (integrityOk ? "Checks passed" : "Concerns noted") : "Not evaluated" },
+              ].map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "9px" }}>
+                  <span style={{ color: "#6b7280" }}>{item.label}</span>
+                  <span style={{ color: "#374151", fontWeight: 500 }}>{item.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
           <div
             style={{
-              marginTop: "12px",
+              marginTop: "10px",
               padding: "8px 10px",
               background: "#ffffff",
               border: "1px solid #e5e7eb",

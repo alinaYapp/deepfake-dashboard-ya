@@ -14,7 +14,7 @@ function generateReportHTML(caseData: Case): string {
   const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
 
-  // Determine likely source based on forensic analysis and pipeline
+  // Determine likely source based on forensic analysis and device history
   const pipeline = details?.device_generation_history || [
     { generation: 1, brand: "iPhone 11", model: "Device Camera", camera_type: "Original capture", processing_steps: [] },
     { generation: 2, brand: "FFmpeg", model: "Re-wrap", camera_type: "Encoder", processing_steps: [] },
@@ -25,6 +25,9 @@ function generateReportHTML(caseData: Case): string {
   const primaryType = lastGen?.camera_type || "Unknown"
   const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
   const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
+
+  // File integrity (needed early for metrics)
+  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
 
   // Key metrics for Page 1 (max 4, plain language)
   const totalFlags = criticalCount + suspectCount
@@ -52,10 +55,13 @@ function generateReportHTML(caseData: Case): string {
     ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} noted`, status: criticalCount > 0 ? "alert" as const : "warn" as const }
     : { label: "Forensic Flags", value: "None observed", status: "ok" as const }
   )
+  // Metadata & file analysis summary
+  const hasIntegrityData = !!details?.structural_consistency
+  const hasMetadata = !!details?.decoded_metadata
   metrics.push({
-    label: "Processing Pipeline",
-    value: pipeline.length > 1 ? `${pipeline.length} stages observed` : pipeline.length === 1 ? `Single source indicated: ${pipeline[0]?.brand}` : "Undetermined",
-    status: pipeline.length > 2 ? "warn" : "ok",
+    label: "File & Metadata",
+    value: hasIntegrityData ? (integrityPassed ? "Structure consistent" : "Integrity concerns noted") : hasMetadata ? "Metadata extracted" : "Limited data available",
+    status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
   })
 
   const metricColor = (s: string) => s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
@@ -123,8 +129,7 @@ function generateReportHTML(caseData: Case): string {
     if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
   }
 
-  // File integrity check
-  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
+  // File integrity check (integrityPassed defined earlier)
 
   // Waveform SVG for audio
   const waveformBars = Array.from({ length: 48 }).map((_, i) => {
@@ -153,8 +158,8 @@ function generateReportHTML(caseData: Case): string {
     if (criticalCount > 0) {
       keyFindings.push("File metadata exhibits structural similarities to known AI generation tool signatures")
     }
-    if (pipeline.length > 2) {
-      keyFindings.push("Media appears to have been processed through multiple intermediate stages")
+    if (!integrityPassed && hasIntegrityData) {
+      keyFindings.push("File structure exhibits characteristics inconsistent with unmodified media containers")
     }
   } else {
     keyFindings.push("No indicators of facial manipulation were observed in this analysis")
@@ -162,8 +167,8 @@ function generateReportHTML(caseData: Case): string {
       keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
     }
     keyFindings.push("File structure is consistent with known authentic capture device signatures")
-    if (pipeline.length <= 1) {
-      keyFindings.push("Available metadata suggests a single origination source")
+    if (integrityPassed) {
+      keyFindings.push("File metadata and container structure are consistent with expected encoding standards")
     }
   }
 
@@ -444,19 +449,20 @@ function generateReportHTML(caseData: Case): string {
       </div>
       <div style="flex: 2; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
         <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Attribution</div>
-        <div style="margin-bottom: 8px;">
+        <div style="margin-bottom: 10px;">
           <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Closest Structural Match</div>
           <div style="font-size: 15px; font-weight: 700; color: #1a1a1a;">${primaryMatch}</div>
           <div style="font-size: 10px; color: #6b7280;">${primaryType}</div>
         </div>
-        ${pipeline.length > 1 ? `
-        <div style="margin-top: 10px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px;">Observed Media Pipeline</div>
-          <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-            ${pipeline.map((p, i) => `<span style="display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 600; background: ${p.camera_type === 'AI Generator' ? '#FEE2E2' : p.camera_type === 'Encoder' ? '#FEF3C7' : '#DCFCE7'}; color: ${p.camera_type === 'AI Generator' ? '#B91C1C' : p.camera_type === 'Encoder' ? '#B45309' : '#15803D'};">${p.brand}</span>${i < pipeline.length - 1 ? '<span style="color: #9ca3af; font-size: 10px;">&#8250;</span>' : ''}`).join('')}
+        <div style="margin-top: 6px;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px; font-weight: 600;">Evidence Basis</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">Metadata structure</span><span style="color: #374151; font-weight: 500;">${hasMetadata ? 'EXIF / container analyzed' : 'Limited data'}</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">Encoding characteristics</span><span style="color: #374151; font-weight: 500;">${meta?.general?.writing_application || 'Standard encoding'}</span></div>
+            <div style="display: flex; justify-content: space-between; font-size: 9px;"><span style="color: #6b7280;">File integrity</span><span style="color: #374151; font-weight: 500;">${hasIntegrityData ? (integrityPassed ? 'Checks passed' : 'Concerns noted') : 'Not evaluated'}</span></div>
           </div>
-        </div>` : ''}
-        <div style="margin-top: 12px; padding: 8px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 9px; color: #9ca3af; line-height: 1.5; font-style: italic;">
+        </div>
+        <div style="margin-top: 10px; padding: 8px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 9px; color: #9ca3af; line-height: 1.5; font-style: italic;">
           Attribution reflects structural signature comparison and should not be interpreted as a definitive determination of origin.
         </div>
       </div>
