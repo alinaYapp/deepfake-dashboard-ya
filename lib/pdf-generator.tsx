@@ -11,6 +11,7 @@ function generateReportHTML(caseData: Case): string {
   })
   const details = caseData.details
   const isSuspicious = caseData.verdict === "fake"
+  const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
 
   // Determine likely source based on forensic analysis and pipeline
@@ -19,60 +20,66 @@ function generateReportHTML(caseData: Case): string {
     { generation: 2, brand: "FFmpeg", model: "Re-wrap", camera_type: "Encoder", processing_steps: [] },
     { generation: 3, brand: "Haiper AI", model: "Image→Video", camera_type: "AI Generator", processing_steps: [] },
   ]
-  const primaryMatch = pipeline[2]?.brand || "Unknown AI Generator"
-  const secondaryMatches = details?.forensic_analysis
-    ? details.forensic_analysis
-        .filter((f) => f.severity === "critical")
-        .flatMap((f) => f.name.split(", "))
-        .filter((name) => name !== primaryMatch)
-    : []
-  const displayedSecondary = secondaryMatches.slice(0, 4)
-  const remainingCount = secondaryMatches.length - displayedSecondary.length
-  const likelySource = primaryMatch + (remainingCount > 0 ? ` + ${remainingCount} more` : "")
+  const lastGen = pipeline[pipeline.length - 1]
+  const primaryMatch = lastGen?.brand || "Unknown"
+  const primaryType = lastGen?.camera_type || "Unknown"
+  const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
+  const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
 
   // Analysis results for the table
   const analysisResults = [
     {
       check: "Face Manipulation",
       result: details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.result === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0.12,
+      confidence: details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0,
     },
     {
-      check: "AI Generated Content",
+      check: "AI-Generated Content",
       result: details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.result === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.confidence || 0.08,
+      confidence: details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.confidence || 0,
     },
     {
       check: "Eye Gaze Analysis",
-      result: isSuspicious ? "suspicious" : "valid",
-      confidence: isSuspicious ? 0.746 : 0.15,
+      result: details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")?.result === "suspicious" ? "suspicious" : "valid",
+      confidence: details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")?.confidence || 0,
     },
     {
       check: "Voice Analysis",
       result: details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.voice_analysis?.[0]?.confidence || 0.05,
+      confidence: details?.voice_analysis?.[0]?.confidence || 0,
     },
     {
       check: "Forensic Signatures",
       result: details?.forensic_analysis?.some((f) => f.severity === "critical") ? "critical" : "valid",
-      confidence: details?.forensic_analysis?.some((f) => f.severity === "critical") ? 0.94 : 0.1,
+      confidence: details?.forensic_analysis?.some((f) => f.severity === "critical") ? 0.94 : 0,
     },
   ]
 
-  // Key findings based on analysis
-  const keyFindings = isSuspicious
-    ? [
-        `Face swap detected with ${((details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0.94) * 100).toFixed(1)}% confidence`,
-        "AI-generated content indicators found in pixel analysis",
-        "Voice synthesis artifacts detected in audio track",
-        "File structure matches known AI generator signatures",
-      ]
-    : [
-        "No face manipulation detected",
-        "Content appears to be camera-original",
-        "Voice patterns consistent with natural speech",
-        "File structure matches authentic capture devices",
-      ]
+  // Key findings based on actual analysis data
+  const keyFindings: string[] = []
+  if (isSuspicious) {
+    const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
+    if (faceResult?.result === "suspicious") {
+      keyFindings.push(`Face manipulation detected with ${(faceResult.confidence * 100).toFixed(1)}% confidence`)
+    }
+    const eyeResult = details?.pixel_analysis?.find((p) => p.type === "eye_gaze_manipulation")
+    if (eyeResult?.result === "suspicious") {
+      keyFindings.push(`Eye gaze inconsistencies detected (${(eyeResult.confidence * 100).toFixed(1)}% confidence)`)
+    }
+    if (details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious") {
+      keyFindings.push("Voice synthesis artifacts detected in audio track")
+    }
+    if (details?.forensic_analysis?.some((f) => f.severity === "critical")) {
+      keyFindings.push("File structure matches known AI generator signatures")
+    }
+  } else {
+    keyFindings.push("No face manipulation detected")
+    keyFindings.push("Content appears to be camera-original")
+    if (details?.voice_analysis && details.voice_analysis.length > 0) {
+      keyFindings.push("Voice patterns consistent with natural speech")
+    }
+    keyFindings.push("File structure matches authentic capture devices")
+  }
 
   // Voice analysis data
   const voiceData = details?.voice_analysis?.[0] || {
@@ -682,88 +689,118 @@ function generateReportHTML(caseData: Case): string {
         <div>${reportDate}</div>
       </div>
     </div>
-    
-    <div class="verdict-section">
-      <div class="verdict-card">
-        <div class="verdict-badge">
-          <span>${isSuspicious ? "⚠" : "✓"}</span>
-          ${isSuspicious ? "SUSPICIOUS - Potential Manipulation Detected" : "VALID - No Manipulation Detected"}
+
+    <div style="font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 20px; letter-spacing: -0.01em;">
+      Deepfake Detection Report &mdash; Executive Summary
+    </div>
+
+    <!-- Verdict + Case Info row -->
+    <div style="display: flex; gap: 20px; margin-bottom: 22px;">
+      <div style="flex: 1; padding: 20px; border-radius: 10px; background: ${isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'};">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; background: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; color: white; font-weight: 600; font-size: 12px; margin-bottom: 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            ${isSuspicious 
+              ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'
+              : isUncertain
+                ? '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'
+                : '<polyline points="20 6 9 17 4 12"></polyline>'}
+          </svg>
+          ${isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'VALID'}
         </div>
-        <div class="confidence-section">
-          <div class="confidence-label">Confidence Score</div>
-          <div class="confidence-value">${confidencePercent}%</div>
-          <div class="confidence-bar">
-            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+        <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">
+          ${isSuspicious ? 'Potential Manipulation Detected' : isUncertain ? 'Inconclusive Results' : 'No Manipulation Detected'}
+        </div>
+        <div style="margin-top: 14px;">
+          <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">Confidence Score</div>
+          <div style="font-size: 32px; font-weight: 700; color: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; line-height: 1; margin-bottom: 10px;">
+            ${confidencePercent}%
+          </div>
+          <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: ${confidencePercent}%; background: ${isSuspicious ? '#DC2626' : isUncertain ? '#D97706' : '#16A34A'}; border-radius: 4px;"></div>
           </div>
         </div>
       </div>
-      <div class="media-preview">
-        <div class="media-thumbnail">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-              <line x1="7" y1="2" x2="7" y2="22"></line>
-              <line x1="17" y1="2" x2="17" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <line x1="2" y1="7" x2="7" y2="7"></line>
-              <line x1="2" y1="17" x2="7" y2="17"></line>
-              <line x1="17" y1="17" x2="22" y2="17"></line>
-              <line x1="17" y1="7" x2="22" y2="7"></line>
-            </svg>
-            <span style="color: #9ca3af; font-size: 10px; text-align: center;">Preview available in<br/>web dashboard</span>
-          </div>
+      <div style="flex: 1; padding: 20px; border-radius: 10px; background: #f8fafc; border: 1px solid #e5e7eb;">
+        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">
+          Case Identification
         </div>
-        <div class="media-info">
-          768 × 1362 • 00:05 • ${formatBytes(caseData.file_size_bytes)}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Case ID</span><span style="font-size: 11px; font-weight: 500; font-family: monospace;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] + '...' : caseData.id}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">File Type</span><span style="font-size: 11px; font-weight: 500;">${caseData.content_type}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">File Size</span><span style="font-size: 11px; font-weight: 500;">${formatBytes(caseData.file_size_bytes)}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Submitted</span><span style="font-size: 11px; font-weight: 500;">${formatDate(caseData.created_at)}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Job Type</span><span style="font-size: 11px; font-weight: 500; text-transform: capitalize;">${caseData.job_type.replace('_', ' ')}</span></div>
+          <div style="display: flex; justify-content: space-between;"><span style="font-size: 10px; color: #6b7280;">Engine Version</span><span style="font-size: 11px; font-weight: 500;">v${details?.project_info?.verify_version || '2.374'}</span></div>
         </div>
       </div>
     </div>
-    
+
+    <!-- Analysis Results Table -->
     <div class="section-title">Analysis Results</div>
     <table class="results-table">
       <thead>
         <tr>
           <th>Check</th>
-          <th>Result</th>
-          <th>Confidence</th>
+          <th style="width: 110px;">Result</th>
+          <th style="width: 100px; text-align: right;">Confidence</th>
         </tr>
       </thead>
       <tbody>
         ${analysisResults
+          .filter((r) => r.confidence > 0)
           .map(
             (r) => `
         <tr>
-          <td>${r.check}</td>
+          <td style="font-weight: 500;">${r.check}</td>
           <td><span class="result-badge ${r.result}">${r.result === "critical" ? "Critical" : r.result === "suspicious" ? "Suspicious" : "Valid"}</span></td>
-          <td>${(r.confidence * 100).toFixed(1)}%</td>
+          <td style="text-align: right; font-family: monospace; font-weight: 600; color: ${r.result === 'suspicious' || r.result === 'critical' ? '#DC2626' : '#16A34A'};">${(r.confidence * 100).toFixed(1)}%</td>
         </tr>
         `
           )
           .join("")}
       </tbody>
     </table>
-    
-    <div class="findings-box">
-      <div class="findings-title">Key Findings</div>
-      <ul class="findings-list">
-        ${keyFindings.map((f) => `<li>${f}</li>`).join("")}
-      </ul>
-    </div>
-    
-    <div class="source-line" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="source-label">PRIMARY MATCH:</span>
-        <span class="source-value" style="font-size: 14px; font-weight: 700;">${primaryMatch}</span>
+
+    <!-- Key Findings + Source Attribution -->
+    <div style="display: flex; gap: 20px; margin-bottom: 16px;">
+      <div style="flex: 1; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px;">
+        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Key Findings</div>
+        <ul style="list-style: none; margin: 0; padding: 0;">
+          ${keyFindings.map((f) => `<li style="font-size: 11px; color: #4b5563; padding: 3px 0; padding-left: 14px; position: relative; line-height: 1.5;"><span style="position: absolute; left: 0; color: ${isSuspicious ? '#DC2626' : '#16A34A'}; font-weight: 700;">${isSuspicious ? '!' : '-'}</span>${f}</li>`).join('')}
+        </ul>
       </div>
-      ${
-        displayedSecondary.length > 0
-          ? `<div style="font-size: 11px; color: #6b7280;">Also consistent with: ${displayedSecondary.join(", ")}${remainingCount > 0 ? ` +${remainingCount} others` : ""}</div>`
-          : ""
-      }
+      <div style="flex: 1; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px;">
+        <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Source Attribution</div>
+        <div>
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Primary Match</div>
+          <div style="font-size: 14px; font-weight: 700; color: ${isSuspicious ? '#DC2626' : '#16A34A'};">${primaryMatch}</div>
+          <div style="font-size: 10px; color: #6b7280;">${primaryType}</div>
+        </div>
+        ${(criticalCount > 0 || suspectCount > 0) ? `
+        <div style="margin-top: 8px; padding: 8px 10px; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border-radius: 4px; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
+          <div style="font-size: 10px; color: #4b5563;">
+            ${criticalCount > 0 ? `<strong style="color: #DC2626;">${criticalCount} critical</strong>${suspectCount > 0 ? ', ' : ' '}` : ''}${suspectCount > 0 ? `<strong style="color: #D97706;">${suspectCount} suspect</strong> ` : ''}forensic signature${(criticalCount + suspectCount) !== 1 ? 's' : ''} identified
+          </div>
+        </div>` : ''}
+        ${pipeline.length > 1 ? `
+        <div style="margin-top: 8px;">
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 4px;">Processing Pipeline</div>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            ${pipeline.map((p, i) => `<span style="display: inline-block; padding: 3px 8px; background: ${p.camera_type === 'AI Generator' ? '#FEE2E2' : p.camera_type === 'Encoder' ? '#FEF3C7' : '#DCFCE7'}; color: ${p.camera_type === 'AI Generator' ? '#DC2626' : p.camera_type === 'Encoder' ? '#D97706' : '#16A34A'}; border-radius: 3px; font-size: 9px; font-weight: 600;">${p.brand}</span>${i < pipeline.length - 1 ? '<span style="color: #9ca3af; font-size: 10px;">&gt;</span>' : ''}`).join('')}
+          </div>
+        </div>` : ''}
+      </div>
     </div>
-    
+
+    <!-- Disclaimer -->
+    <div style="font-size: 9px; color: #9ca3af; line-height: 1.5; padding: 10px 0 0; border-top: 1px solid #f3f4f6;">
+      This report was generated automatically by DataSpike v${details?.project_info?.verify_version || '2.374'}.
+      Results are based on analysis of the submitted media and should be interpreted alongside additional context. This document does not constitute legal advice.
+    </div>
+
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
+      <span>CONFIDENTIAL</span>
       <span>Page 1 of 6</span>
     </div>
   </div>
