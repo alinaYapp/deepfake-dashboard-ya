@@ -41,8 +41,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
       label: "Face Analysis",
       value:
         faceResult.result === "suspicious"
-          ? `${(faceResult.confidence * 100).toFixed(0)}% suspicious`
-          : "No issues found",
+          ? `${(faceResult.confidence * 100).toFixed(0)}% confidence of concern`
+          : "No concerns indicated",
       status: faceResult.result === "suspicious" ? "alert" : "ok",
     })
   }
@@ -52,8 +52,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
     metrics.push({
       label: "Voice Analysis",
       value: voiceSuspicious
-        ? `${(voiceResult.confidence * 100).toFixed(0)}% suspicious`
-        : "No issues found",
+        ? `${(voiceResult.confidence * 100).toFixed(0)}% confidence of concern`
+        : "No concerns indicated",
       status: voiceSuspicious ? "alert" : "ok",
     })
   }
@@ -61,13 +61,13 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   if (totalFlags > 0) {
     metrics.push({
       label: "Forensic Flags",
-      value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} flagged`,
+      value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} noted`,
       status: criticalCount > 0 ? "alert" : "warn",
     })
   } else {
     metrics.push({
       label: "Forensic Flags",
-      value: "None identified",
+      value: "None observed",
       status: "ok",
     })
   }
@@ -76,46 +76,46 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
     label: "Processing Pipeline",
     value:
       pipeline.length > 1
-        ? `${pipeline.length} stages detected`
+        ? `${pipeline.length} stages observed`
         : pipeline.length === 1
-          ? `Single source: ${pipeline[0]?.brand}`
-          : "Unknown",
+          ? `Single source indicated: ${pipeline[0]?.brand}`
+          : "Undetermined",
     status: pipeline.length > 2 ? "warn" : "ok",
   })
 
-  // Key findings (3-5 bullets, plain language, what not how)
+  // Key findings (3-5 bullets, probabilistic language)
   const keyFindings: string[] = []
   if (isSuspicious) {
     if (faceResult?.result === "suspicious") {
       keyFindings.push(
-        "Facial features show signs consistent with synthetic manipulation"
+        "Facial region analysis suggests patterns consistent with synthetic alteration"
       )
     }
     const eyeResult = details?.pixel_analysis?.find(
       (p) => p.type === "eye_gaze_manipulation"
     )
     if (eyeResult?.result === "suspicious") {
-      keyFindings.push("Eye gaze patterns appear inconsistent with natural movement")
+      keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
     }
     if (voiceResult?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Audio track contains patterns associated with voice synthesis")
+      keyFindings.push("Audio characteristics suggest the presence of patterns associated with voice synthesis")
     }
     if (criticalCount > 0) {
       keyFindings.push(
-        "File structure matches signatures of known AI generation tools"
+        "File metadata exhibits structural similarities to known AI generation tool signatures"
       )
     }
     if (pipeline.length > 2) {
-      keyFindings.push("Media has passed through multiple processing stages")
+      keyFindings.push("Media appears to have been processed through multiple intermediate stages")
     }
   } else {
-    keyFindings.push("No indicators of facial manipulation were identified")
+    keyFindings.push("No indicators of facial manipulation were observed in this analysis")
     if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
-      keyFindings.push("Voice patterns are consistent with natural speech")
+      keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
     }
-    keyFindings.push("File structure is consistent with authentic capture devices")
+    keyFindings.push("File structure is consistent with known authentic capture device signatures")
     if (pipeline.length <= 1) {
-      keyFindings.push("Media appears to originate from a single source")
+      keyFindings.push("Available metadata suggests a single origination source")
     }
   }
 
@@ -141,10 +141,10 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
       ? "Uncertain"
       : "Valid"
   const verdictSubtext = isSuspicious
-    ? "Potential Manipulation Detected"
+    ? "Analysis indicates possible manipulation"
     : isUncertain
-      ? "Inconclusive Analysis Results"
-      : "No Manipulation Detected"
+      ? "Analysis results are inconclusive"
+      : "No indicators of manipulation identified"
 
   const metricStatusColor = (s: "alert" | "warn" | "ok") =>
     s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
@@ -466,7 +466,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
           </div>
           <div style={{ marginBottom: "8px" }}>
             <div style={{ fontSize: "10px", color: "#6b7280", marginBottom: "2px" }}>
-              Primary Match
+              Closest Structural Match
             </div>
             <div
               style={{
@@ -488,7 +488,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
                   marginBottom: "6px",
                 }}
               >
-                Media Pipeline
+                Observed Media Pipeline
               </div>
               <div
                 style={{
@@ -553,8 +553,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
               fontStyle: "italic",
             }}
           >
-            Attribution is based on structural signature matching and does not
-            constitute a definitive identification of origin.
+            Attribution reflects structural signature comparison and should
+            not be interpreted as a definitive determination of origin.
           </div>
         </div>
       </div>
@@ -569,10 +569,11 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
           borderTop: "1px solid #f3f4f6",
         }}
       >
-        This report was generated automatically by DataSpike v
-        {details?.project_info?.verify_version || "2.374"}. Results should be
-        interpreted alongside additional investigative context. This document
-        does not constitute legal advice.
+        This report was generated by automated analysis (DataSpike v
+        {details?.project_info?.verify_version || "2.374"}). Findings are
+        probabilistic in nature and should be evaluated in conjunction with
+        independent investigative context. This document does not constitute
+        legal advice or a conclusive determination of authenticity.
       </div>
 
       {/* ── Footer ── */}

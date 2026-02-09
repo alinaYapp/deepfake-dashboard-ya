@@ -152,7 +152,7 @@ export function HeatMapBlock({
               borderRadius: "3px",
             }}
           >
-            {zones.length} region{zones.length !== 1 ? "s" : ""} flagged
+            {zones.length} region{zones.length !== 1 ? "s" : ""} of interest
           </span>
         )}
         {!isSuspicious && (
@@ -167,7 +167,7 @@ export function HeatMapBlock({
               borderRadius: "3px",
             }}
           >
-            No regions flagged
+            No regions of concern
           </span>
         )}
       </div>
@@ -411,7 +411,7 @@ export function HeatMapBlock({
               fontWeight: 500,
             }}
           >
-            {isSuspicious ? "Anomaly Overlay" : "Analysis Overlay"}
+            {isSuspicious ? "Regions of Interest" : "Analysis Overlay"}
           </div>
         </div>
 
@@ -438,7 +438,7 @@ export function HeatMapBlock({
             >
               {isSuspicious
                 ? "Regions of Interest Identified"
-                : "No Anomalies Detected"}
+                : "No Regions of Concern Observed"}
             </div>
             <div
               style={{
@@ -449,8 +449,8 @@ export function HeatMapBlock({
               }}
             >
               {isSuspicious
-                ? "Color-coded regions indicate areas where analysis detected patterns inconsistent with authentic media. Warmer colors represent higher anomaly confidence."
-                : "Frame analysis did not identify regions exhibiting manipulation patterns. The scan area is outlined for reference."}
+                ? "Shaded regions indicate areas where the analysis observed patterns that may be inconsistent with unaltered media. Warmer colors correspond to higher confidence of anomaly."
+                : "Frame analysis did not observe regions exhibiting patterns suggestive of manipulation. The scanned area is outlined for reference."}
             </div>
           </div>
 
@@ -526,8 +526,8 @@ export function HeatMapBlock({
             }}
           >
             This visualization is an analytical aid derived from statistical
-            modeling. It does not represent raw sensor data or direct evidence
-            of manipulation.
+            modeling. It does not represent raw sensor data and should not be
+            treated as direct evidence of manipulation.
           </div>
         </div>
       </div>

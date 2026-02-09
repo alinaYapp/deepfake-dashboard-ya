@@ -65,7 +65,7 @@ function generateReportHTML(caseData: Case): string {
   if (faceResult) {
     metrics.push({
       label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}% suspicious` : "No issues found",
+      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}% confidence of concern` : "No concerns indicated",
       status: faceResult.result === "suspicious" ? "alert" : "ok",
     })
   }
@@ -73,17 +73,17 @@ function generateReportHTML(caseData: Case): string {
     const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
     metrics.push({
       label: "Voice Analysis",
-      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}% suspicious` : "No issues found",
+      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}% confidence of concern` : "No concerns indicated",
       status: voiceSus ? "alert" : "ok",
     })
   }
   metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} flagged`, status: criticalCount > 0 ? "alert" as const : "warn" as const }
-    : { label: "Forensic Flags", value: "None identified", status: "ok" as const }
+    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""} noted`, status: criticalCount > 0 ? "alert" as const : "warn" as const }
+    : { label: "Forensic Flags", value: "None observed", status: "ok" as const }
   )
   metrics.push({
     label: "Processing Pipeline",
-    value: pipeline.length > 1 ? `${pipeline.length} stages detected` : pipeline.length === 1 ? `Single source: ${pipeline[0]?.brand}` : "Unknown",
+    value: pipeline.length > 1 ? `${pipeline.length} stages observed` : pipeline.length === 1 ? `Single source indicated: ${pipeline[0]?.brand}` : "Undetermined",
     status: pipeline.length > 2 ? "warn" : "ok",
   })
 
@@ -116,33 +116,33 @@ function generateReportHTML(caseData: Case): string {
     return `<ellipse cx="${cx}" cy="${cy}" rx="${rx * 1.15}" ry="${ry * 1.15}" fill="url(#${zoneGradientId(z)})" /><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${zoneStroke(z)}" stroke-width="1" stroke-dasharray="3,2" />`
   }).join('')
 
-  // Key findings (plain language, what not how)
+  // Key findings (probabilistic language)
   const keyFindings: string[] = []
   if (isSuspicious) {
     if (faceResult?.result === "suspicious") {
-      keyFindings.push("Facial features show signs consistent with synthetic manipulation")
+      keyFindings.push("Facial region analysis suggests patterns consistent with synthetic alteration")
     }
-    const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
-    if (eyeResult?.result === "suspicious") {
-      keyFindings.push("Eye gaze patterns appear inconsistent with natural movement")
+    const eyeResult2 = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
+    if (eyeResult2?.result === "suspicious") {
+      keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
     }
     if (voiceResult?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Audio track contains patterns associated with voice synthesis")
+      keyFindings.push("Audio characteristics suggest the presence of patterns associated with voice synthesis")
     }
     if (criticalCount > 0) {
-      keyFindings.push("File structure matches signatures of known AI generation tools")
+      keyFindings.push("File metadata exhibits structural similarities to known AI generation tool signatures")
     }
     if (pipeline.length > 2) {
-      keyFindings.push("Media has passed through multiple processing stages")
+      keyFindings.push("Media appears to have been processed through multiple intermediate stages")
     }
   } else {
-    keyFindings.push("No indicators of facial manipulation were identified")
+    keyFindings.push("No indicators of facial manipulation were observed in this analysis")
     if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
-      keyFindings.push("Voice patterns are consistent with natural speech")
+      keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
     }
-    keyFindings.push("File structure is consistent with authentic capture devices")
+    keyFindings.push("File structure is consistent with known authentic capture device signatures")
     if (pipeline.length <= 1) {
-      keyFindings.push("Media appears to originate from a single source")
+      keyFindings.push("Available metadata suggests a single origination source")
     }
   }
 
@@ -654,7 +654,7 @@ function generateReportHTML(caseData: Case): string {
             ${isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'VALID'}
           </div>
           <div style="font-size: 13px; color: #4b5563; margin-top: 10px; font-weight: 500;">
-            ${isSuspicious ? 'Potential Manipulation Detected' : isUncertain ? 'Inconclusive Analysis Results' : 'No Manipulation Detected'}
+            ${isSuspicious ? 'Analysis indicates possible manipulation' : isUncertain ? 'Analysis results are inconclusive' : 'No indicators of manipulation identified'}
           </div>
         </div>
         <div style="text-align: right;">
@@ -689,8 +689,8 @@ function generateReportHTML(caseData: Case): string {
       <div style="padding: 8px 16px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px;">Frame Analysis</span>
         ${isSuspicious
-          ? `<span style="font-size: 9px; font-weight: 500; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 3px;">${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} flagged</span>`
-          : `<span style="font-size: 9px; font-weight: 500; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 2px 8px; border-radius: 3px;">No regions flagged</span>`}
+          ? `<span style="font-size: 9px; font-weight: 500; color: #B91C1C; background: #FEF2F2; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 3px;">${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} of interest</span>`
+          : `<span style="font-size: 9px; font-weight: 500; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 2px 8px; border-radius: 3px;">No regions of concern</span>`}
       </div>
       <div style="display: flex; background: #f9fafb;">
         <!-- Source frame -->
@@ -722,13 +722,13 @@ function generateReportHTML(caseData: Case): string {
             ${hasZones ? zoneSvgEllipses : ''}
             ${!isSuspicious ? '<rect x="52" y="25" width="56" height="48" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
           </svg>
-          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 8px; font-weight: 500;">${isSuspicious ? 'Anomaly Overlay' : 'Analysis Overlay'}</div>
+          <div style="font-size: 9px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 8px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
         </div>
         <!-- Legend + caption -->
         <div style="flex: 1.2; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 8px; line-height: 1.4;">${isSuspicious ? 'Regions of Interest Identified' : 'No Anomalies Detected'}</div>
-            <div style="font-size: 10px; color: #4b5563; line-height: 1.6; margin-bottom: 12px;">${isSuspicious ? 'Color-coded regions indicate areas where analysis detected patterns inconsistent with authentic media. Warmer colors represent higher anomaly confidence.' : 'Frame analysis did not identify regions exhibiting manipulation patterns. The scan area is outlined for reference.'}</div>
+            <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 8px; line-height: 1.4;">${isSuspicious ? 'Regions of Interest Identified' : 'No Regions of Concern Observed'}</div>
+            <div style="font-size: 10px; color: #4b5563; line-height: 1.6; margin-bottom: 12px;">${isSuspicious ? 'Shaded regions indicate areas where the analysis observed patterns that may be inconsistent with unaltered media. Warmer colors correspond to higher confidence of anomaly.' : 'Frame analysis did not observe regions exhibiting patterns suggestive of manipulation. The scanned area is outlined for reference.'}</div>
           </div>
           ${isSuspicious ? `<div style="margin-bottom: 12px;">
             <div style="font-size: 9px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px;">Intensity Scale</div>
@@ -738,7 +738,7 @@ function generateReportHTML(caseData: Case): string {
               <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 2px; background: rgba(202,138,4,0.12); border: 1.5px solid #CA8A04;"></div><span style="font-size: 9px; color: #CA8A04; font-weight: 500;">Low</span></div>
             </div>
           </div>` : ''}
-          <div style="font-size: 8px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 8px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data or direct evidence of manipulation.</div>
+          <div style="font-size: 8px; color: #9ca3af; line-height: 1.5; border-top: 1px solid #e5e7eb; padding-top: 8px; font-style: italic;">This visualization is an analytical aid derived from statistical modeling. It does not represent raw sensor data and should not be treated as direct evidence of manipulation.</div>
         </div>
       </div>
     </div>
@@ -754,27 +754,28 @@ function generateReportHTML(caseData: Case): string {
       <div style="flex: 2; padding: 16px 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
         <div style="font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px;">Attribution</div>
         <div style="margin-bottom: 8px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Primary Match</div>
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 2px;">Closest Structural Match</div>
           <div style="font-size: 15px; font-weight: 700; color: #1a1a1a;">${primaryMatch}</div>
           <div style="font-size: 10px; color: #6b7280;">${primaryType}</div>
         </div>
         ${pipeline.length > 1 ? `
         <div style="margin-top: 10px;">
-          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px;">Media Pipeline</div>
+          <div style="font-size: 10px; color: #6b7280; margin-bottom: 6px;">Observed Media Pipeline</div>
           <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
             ${pipeline.map((p, i) => `<span style="display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 9px; font-weight: 600; background: ${p.camera_type === 'AI Generator' ? '#FEE2E2' : p.camera_type === 'Encoder' ? '#FEF3C7' : '#DCFCE7'}; color: ${p.camera_type === 'AI Generator' ? '#B91C1C' : p.camera_type === 'Encoder' ? '#B45309' : '#15803D'};">${p.brand}</span>${i < pipeline.length - 1 ? '<span style="color: #9ca3af; font-size: 10px;">&#8250;</span>' : ''}`).join('')}
           </div>
         </div>` : ''}
         <div style="margin-top: 12px; padding: 8px 10px; background: white; border: 1px solid #e5e7eb; border-radius: 4px; font-size: 9px; color: #9ca3af; line-height: 1.5; font-style: italic;">
-          Attribution is based on structural signature matching and does not constitute a definitive identification of origin.
+          Attribution reflects structural signature comparison and should not be interpreted as a definitive determination of origin.
         </div>
       </div>
     </div>
 
     <!-- Disclaimer -->
     <div style="font-size: 9px; color: #9ca3af; line-height: 1.5; padding: 10px 0 0; border-top: 1px solid #f3f4f6;">
-      This report was generated automatically by DataSpike v${details?.project_info?.verify_version || '2.374'}.
-      Results should be interpreted alongside additional investigative context. This document does not constitute legal advice.
+      This report was generated by automated analysis (DataSpike v${details?.project_info?.verify_version || '2.374'}).
+      Findings are probabilistic in nature and should be evaluated in conjunction with independent investigative context.
+      This document does not constitute legal advice or a conclusive determination of authenticity.
     </div>
 
     <div class="page-footer">
