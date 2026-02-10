@@ -150,25 +150,23 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
           {/* Right: large score */}
           <div style={{
-            flex: "0 0 210px",
+            flex: "0 0 220px",
             background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            padding: "28px 24px", borderLeft: "1px solid #e5e7eb",
-            gap: "0px",
+            padding: "32px 24px", borderLeft: "1px solid #e5e7eb",
+            gap: "16px",
           }}>
-            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", marginBottom: "12px" }}>
+            <div style={{ fontSize: "11px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "1px", textAlign: "center" }}>
               Overall Confidence
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", marginBottom: "14px" }}>
-              <span style={{ fontSize: "52px", fontWeight: 700, color: verdictColor, lineHeight: "1" }}>{confidencePercent}</span>
-              <span style={{ fontSize: "24px", fontWeight: 600, color: verdictColor, lineHeight: "1", marginLeft: "2px" }}>%</span>
+            <div style={{ fontSize: "64px", fontWeight: 700, color: verdictColor, lineHeight: "1", textAlign: "center" }}>
+              {confidencePercent}<span style={{ fontSize: "40px" }}>%</span>
             </div>
             <div style={{
-              padding: "7px 24px", borderRadius: "5px",
+              padding: "10px 28px", borderRadius: "6px",
               background: verdictColor, color: "#ffffff",
-              fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em",
+              fontSize: "14px", fontWeight: 600, letterSpacing: "0.5px",
               textTransform: "uppercase", textAlign: "center",
-              lineHeight: "1",
             }}>
               {verdictLabel}
             </div>
