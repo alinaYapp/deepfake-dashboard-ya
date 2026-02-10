@@ -272,44 +272,64 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
           <div style={{ fontSize: "9px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
             Forensic Flags
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {/* Critical alert */}
-            <div style={{
-              display: "flex", alignItems: "flex-start", gap: "8px",
-              padding: "8px 10px", background: "#FEE2E2", borderLeft: "4px solid #DC2626", borderRadius: "4px",
-            }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-                <circle cx="7" cy="7" r="6" fill="#DC2626" />
-                <text x="7" y="10.5" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">i</text>
-              </svg>
-              <div>
-                <div style={{ fontSize: "9px", fontWeight: 700, color: "#991B1B", lineHeight: "1.3" }}>
-                  High confidence of AI-generated content detected
+          {isSuspicious || isUncertain ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {/* Critical alert */}
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: "8px",
+                padding: "8px 10px", background: "#FEE2E2", borderLeft: "4px solid #DC2626", borderRadius: "4px",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
+                  <circle cx="7" cy="7" r="6" fill="#DC2626" />
+                  <text x="7" y="10.5" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">i</text>
+                </svg>
+                <div>
+                  <div style={{ fontSize: "9px", fontWeight: 700, color: "#991B1B", lineHeight: "1.3" }}>
+                    High confidence of AI-generated content detected
+                  </div>
+                  <div style={{ fontSize: "8px", color: "#7F1D1D", lineHeight: "1.4", marginTop: "2px" }}>
+                    Signatures consistent with known deepfake generation tools found in file structure
+                  </div>
                 </div>
-                <div style={{ fontSize: "8px", color: "#7F1D1D", lineHeight: "1.4", marginTop: "2px" }}>
-                  Signatures consistent with known deepfake generation tools found in file structure
+              </div>
+              {/* Suspect alert */}
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: "8px",
+                padding: "8px 10px", background: "#FEF3C7", borderLeft: "4px solid #F59E0B", borderRadius: "4px",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
+                  <path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" strokeWidth="0.5" />
+                  <text x="7" y="10.5" textAnchor="middle" fill="#78350F" fontSize="8" fontWeight="700">!</text>
+                </svg>
+                <div>
+                  <div style={{ fontSize: "9px", fontWeight: 700, color: "#92400E", lineHeight: "1.3" }}>
+                    Video converter/encoder signatures detected
+                  </div>
+                  <div style={{ fontSize: "8px", color: "#78350F", lineHeight: "1.4", marginTop: "2px" }}>
+                    FFmpeg, Bluesky
+                  </div>
                 </div>
               </div>
             </div>
-            {/* Suspect alert */}
+          ) : (
             <div style={{
               display: "flex", alignItems: "flex-start", gap: "8px",
-              padding: "8px 10px", background: "#FEF3C7", borderLeft: "4px solid #F59E0B", borderRadius: "4px",
+              padding: "10px 12px", background: "#D1FAE5", borderLeft: "4px solid #10B981", borderRadius: "4px",
             }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-                <path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" strokeWidth="0.5" />
-                <text x="7" y="10.5" textAnchor="middle" fill="#78350F" fontSize="8" fontWeight="700">!</text>
+                <circle cx="7" cy="7" r="6" fill="#10B981" />
+                <path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <div>
-                <div style={{ fontSize: "9px", fontWeight: 700, color: "#92400E", lineHeight: "1.3" }}>
-                  Video converter/encoder signatures detected
+                <div style={{ fontSize: "9px", fontWeight: 700, color: "#065F46", lineHeight: "1.3" }}>
+                  No forensic flags detected
                 </div>
-                <div style={{ fontSize: "8px", color: "#78350F", lineHeight: "1.4", marginTop: "2px" }}>
-                  FFmpeg, Bluesky
+                <div style={{ fontSize: "8px", color: "#047857", lineHeight: "1.4", marginTop: "2px" }}>
+                  File structure analysis found no signatures associated with AI generation or suspicious editing tools
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* RIGHT: Extracted Metadata */}

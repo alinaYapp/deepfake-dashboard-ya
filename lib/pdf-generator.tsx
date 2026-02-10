@@ -391,6 +391,7 @@ function generateReportHTML(caseData: Case): string {
     <div style="display: flex; gap: 8px; margin-bottom: 6px;">
       <div style="flex: 1.4; display: flex; flex-direction: column;">
         <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Forensic Flags</div>
+        ${isSuspicious || isUncertain ? `
         <div style="display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEE2E2; border-left: 4px solid #DC2626; border-radius: 4px;">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>
@@ -407,6 +408,15 @@ function generateReportHTML(caseData: Case): string {
             </div>
           </div>
         </div>
+        ` : `
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 4px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            <div style="font-size: 9px; font-weight: 700; color: #065F46; line-height: 1.3;">No forensic flags detected</div>
+            <div style="font-size: 8px; color: #047857; line-height: 1.4; margin-top: 2px;">File structure analysis found no signatures associated with AI generation or suspicious editing tools</div>
+          </div>
+        </div>
+        `}
       </div>
       <div style="flex: 0.6; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px;">
         <div style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;">Extracted Metadata</div>
