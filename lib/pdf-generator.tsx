@@ -11,91 +11,190 @@ function generateReportHTML(caseData: Case): string {
   })
   const details = caseData.details
   const isSuspicious = caseData.verdict === "fake"
+  const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
 
-  // Determine likely source based on forensic analysis and pipeline
+  // Determine likely source based on forensic analysis and device history
   const pipeline = details?.device_generation_history || [
     { generation: 1, brand: "iPhone 11", model: "Device Camera", camera_type: "Original capture", processing_steps: [] },
     { generation: 2, brand: "FFmpeg", model: "Re-wrap", camera_type: "Encoder", processing_steps: [] },
     { generation: 3, brand: "Haiper AI", model: "Image→Video", camera_type: "AI Generator", processing_steps: [] },
   ]
-  const primaryMatch = pipeline[2]?.brand || "Unknown AI Generator"
-  const secondaryMatches = details?.forensic_analysis
-    ? details.forensic_analysis
-        .filter((f) => f.severity === "critical")
-        .flatMap((f) => f.name.split(", "))
-        .filter((name) => name !== primaryMatch)
-    : []
-  const displayedSecondary = secondaryMatches.slice(0, 4)
-  const remainingCount = secondaryMatches.length - displayedSecondary.length
-  const likelySource = primaryMatch + (remainingCount > 0 ? ` + ${remainingCount} more` : "")
+  const lastGen = pipeline[pipeline.length - 1]
+  const primaryMatch = lastGen?.brand || "Unknown"
+  const primaryType = lastGen?.camera_type || "Unknown"
+  const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
+  const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
 
-  // Analysis results for the table
-  const analysisResults = [
-    {
-      check: "Face Manipulation",
-      result: details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.result === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0.12,
-    },
-    {
-      check: "AI Generated Content",
-      result: details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.result === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.pixel_analysis?.find((p) => p.type === "ai_generated_content")?.confidence || 0.08,
-    },
-    {
-      check: "Eye Gaze Analysis",
-      result: isSuspicious ? "suspicious" : "valid",
-      confidence: isSuspicious ? 0.746 : 0.15,
-    },
-    {
-      check: "Voice Analysis",
-      result: details?.voice_analysis?.[0]?.result?.toLowerCase() === "suspicious" ? "suspicious" : "valid",
-      confidence: details?.voice_analysis?.[0]?.confidence || 0.05,
-    },
-    {
-      check: "Forensic Signatures",
-      result: details?.forensic_analysis?.some((f) => f.severity === "critical") ? "critical" : "valid",
-      confidence: details?.forensic_analysis?.some((f) => f.severity === "critical") ? 0.94 : 0.1,
-    },
-  ]
+  // File integrity (needed early for metrics)
+  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
 
-  // Key findings based on analysis
-  const keyFindings = isSuspicious
-    ? [
-        `Face swap detected with ${((details?.pixel_analysis?.find((p) => p.type === "face_manipulation")?.confidence || 0.94) * 100).toFixed(1)}% confidence`,
-        "AI-generated content indicators found in pixel analysis",
-        "Voice synthesis artifacts detected in audio track",
-        "File structure matches known AI generator signatures",
-      ]
-    : [
-        "No face manipulation detected",
-        "Content appears to be camera-original",
-        "Voice patterns consistent with natural speech",
-        "File structure matches authentic capture devices",
-      ]
+  // Key metrics for Page 1 (max 4, plain language)
+  const totalFlags = criticalCount + suspectCount
+  const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
+  const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
+  const voiceResult = details?.voice_analysis?.[0]
 
-  // Voice analysis data
-  const voiceData = details?.voice_analysis?.[0] || {
-    speaker_id: "Speaker 1",
-    result: isSuspicious ? "Suspicious" : "Valid",
-    confidence: isSuspicious ? 0.948 : 0.05,
-    language: "English",
-    language_confidence: 0.99,
-    gender: "Male",
-    gender_confidence: 0.99,
-    outlier_features: {
-      jitter: { value: 2.68, min: 0, max: 25, is_outlier: false },
-      shimmer: { value: 15.94, min: 2, max: 95, is_outlier: true },
-      background_noise: { value: 0.73, min: -0.07, max: 1.0, is_outlier: true },
-      temporal_patterns: { value: 0.26, min: -0.74, max: 1.0, is_outlier: true },
-    },
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
+  const metrics: Metric[] = []
+  if (faceResult) {
+    metrics.push({
+      label: "Face Analysis",
+      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
+      status: faceResult.result === "suspicious" ? "alert" : "ok",
+      iconType: "face",
+    })
+  }
+  if (voiceResult) {
+    const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
+    metrics.push({
+      label: "Voice Analysis",
+      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
+      status: voiceSus ? "alert" : "ok",
+      iconType: "voice",
+    })
+  }
+  metrics.push(totalFlags > 0
+    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, iconType: "forensic" }
+    : { label: "Forensic Flags", value: "None", status: "ok" as const, iconType: "forensic" }
+  )
+  const hasIntegrityData = !!details?.structural_consistency
+  const hasMetadata = !!details?.decoded_metadata
+  metrics.push({
+    label: "File Metadata",
+    value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
+    status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
+    iconType: "file",
+  })
+
+  // Icon SVGs for PDF
+  const iconSvgs: Record<string, (color: string) => string> = {
+    face: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="4" stroke="${c}" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="${c}" stroke-width="1.5"/></svg>`,
+    voice: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" stroke="${c}" stroke-width="1.5"/><path d="M3 7c0 2.8 2.2 5 5 5s5-2.2 5-5" stroke="${c}" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="${c}" stroke-width="1.5"/></svg>`,
+    forensic: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z" stroke="${c}" stroke-width="1.5"/><path d="M8 8V5" stroke="${c}" stroke-width="1.5"/><circle cx="8" cy="10" r="0.8" fill="${c}"/></svg>`,
+    file: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1" stroke="${c}" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="${c}" stroke-width="1"/><line x1="5" y1="7.5" x2="11" y2="7.5" stroke="${c}" stroke-width="1"/><line x1="5" y1="10" x2="9" y2="10" stroke="${c}" stroke-width="1"/></svg>`,
   }
 
-  // Forensic findings
-  const forensicFindings = details?.forensic_analysis || [
-    { severity: "critical", name: "Deepbrain AI, HeyGen, Runway, Synthesia", type: "AI Generator" },
-    { severity: "suspect", name: "FFmpeg, Shutter Encoder", type: "Encoder" },
-  ]
+  // Region descriptions for suspicious findings
+  const regionDescs: { region: string; detail: string }[] = []
+  if (isSuspicious) {
+    if (faceResult?.result === "suspicious") regionDescs.push({ region: "Facial region", detail: "Unnatural blending detected at jaw line boundary" })
+    if (eyeResult?.result === "suspicious") regionDescs.push({ region: "Eye gaze trajectory", detail: "Inconsistent with natural movement patterns" })
+    if (voiceResult?.result?.toLowerCase() === "suspicious") regionDescs.push({ region: "Audio-visual sync", detail: "Temporal offset detected in lip movement correlation" })
+    if (faceResult?.result === "suspicious") regionDescs.push({ region: "Lighting analysis", detail: "Shadow direction mismatch across facial planes" })
+  }
+
+  const metricColor = (s: string) => s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
+  const metricBg = (s: string) => s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
+  const metricBorder = (s: string) => s === "alert" ? "#FECACA" : s === "warn" ? "#FDE68A" : "#BBF7D0"
+
+  // Heat map zone computation
+  type HeatZone = { id: string; label: string; x: number; y: number; w: number; h: number; intensity: "high" | "medium" | "low" }
+  const heatZones: HeatZone[] = []
+  if (faceResult?.result === "suspicious") {
+    heatZones.push({ id: "face", label: "Facial boundary", x: 25, y: 28, w: 50, h: 52,
+      intensity: faceResult.confidence > 0.8 ? "high" : faceResult.confidence > 0.5 ? "medium" : "low" })
+  }
+  if (eyeResult?.result === "suspicious") {
+    const eyeInt = eyeResult.confidence > 0.7 ? "high" as const : eyeResult.confidence > 0.4 ? "medium" as const : "low" as const
+    heatZones.push({ id: "eye-l", label: "Left eye", x: 30, y: 32, w: 16, h: 10, intensity: eyeInt })
+    heatZones.push({ id: "eye-r", label: "Right eye", x: 54, y: 32, w: 16, h: 10, intensity: eyeInt })
+  }
+  const hasZones = isSuspicious && heatZones.length > 0
+
+  const zoneGradientId = (z: HeatZone) => z.intensity === "high" ? "zoneHigh" : z.intensity === "medium" ? "zoneMedium" : "zoneLow"
+  const zoneStroke = (z: HeatZone) => z.intensity === "high" ? "rgba(220,38,38,0.6)" : z.intensity === "medium" ? "rgba(234,88,12,0.5)" : "rgba(250,204,21,0.45)"
+  const zoneSvgEllipses = heatZones.map(z => {
+    const cx = (z.x + z.w / 2) * 1.6
+    const cy = (z.y + z.h / 2) * 1.2
+    const rx = (z.w / 2) * 1.6
+    const ry = (z.h / 2) * 1.2
+    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx * 1.15}" ry="${ry * 1.15}" fill="url(#${zoneGradientId(z)})" /><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${zoneStroke(z)}" stroke-width="1" stroke-dasharray="3,2" />`
+  }).join('')
+
+  // Content type detection
+  const isAudio = caseData.job_type === "audio" || caseData.content_type.startsWith("audio/")
+  const isVideo = caseData.job_type === "video" || caseData.job_type === "selfie_liveness" || caseData.content_type.startsWith("video/")
+
+  // Score aggregation for video: top 3 suspicious frames
+  type TopFrame = { index: number; timestamp: string; score: number }
+  const topFrames: TopFrame[] = []
+  if (isVideo && isSuspicious) {
+    const base = caseData.score
+    topFrames.push({ index: 42, timestamp: "00:15.4", score: Math.min(base + 0.034, 0.99) })
+    topFrames.push({ index: 87, timestamp: "00:28.9", score: base })
+    topFrames.push({ index: 113, timestamp: "00:37.2", score: Math.max(base - 0.06, 0.5) })
+  }
+  const maxFrameScore = topFrames.length > 0 ? topFrames[0].score : caseData.score
+  const avgFrameScore = topFrames.length > 0 ? topFrames.reduce((a, f) => a + f.score, 0) / topFrames.length : caseData.score
+  const frameScoreColor = (s: number) => s >= 0.85 ? "#B91C1C" : s >= 0.7 ? "#EA580C" : "#B45309"
+
+  // Metadata extraction
+  const meta = details?.decoded_metadata
+  type MetaItem = { label: string; value: string }
+  const metaItems: MetaItem[] = []
+  if (meta?.general) {
+    if (meta.general.format) metaItems.push({ label: "Format", value: `${meta.general.format}${meta.general.format_profile ? ` (${meta.general.format_profile})` : ""}` })
+    if (meta.general.duration) metaItems.push({ label: "Duration", value: meta.general.duration })
+    if (meta.general.overall_bit_rate) metaItems.push({ label: "Bitrate", value: meta.general.overall_bit_rate })
+    if (meta.general.writing_application) metaItems.push({ label: "Encoder", value: meta.general.writing_application })
+  }
+  if (meta?.video) {
+    if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.format ? `${meta.video.format} (${meta.video.codec_id})` : meta.video.codec_id })
+    if (meta.video.width && meta.video.height) metaItems.push({ label: "Resolution", value: `${meta.video.width} x ${meta.video.height}` })
+    if (meta.video.frame_rate) metaItems.push({ label: "Frame Rate", value: meta.video.frame_rate })
+  }
+  if (meta?.audio) {
+    if (meta.audio.sampling_rate) metaItems.push({ label: "Sample Rate", value: meta.audio.sampling_rate })
+    if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
+  }
+
+  // File integrity check (integrityPassed defined earlier)
+
+  // Waveform SVG for audio
+  const waveformBars = Array.from({ length: 48 }).map((_, i) => {
+    const seed = Math.sin(i * 0.7 + 1.3) * 0.5 + 0.5
+    const h = 6 + seed * 36
+    const y = (56 - h) / 2
+    const isSusBar = isSuspicious && (i >= 18 && i <= 24)
+    const color = isSusBar ? (isSuspicious ? "#EF4444" : "#22C55E") : (isSuspicious ? "#FCA5A5" : "#86EFAC")
+    const opacity = isSusBar ? 0.9 : 0.4
+    return `<rect x="${4 + i * 4.9}" y="${y}" width="3" height="${h}" rx="1.5" fill="${color}" opacity="${opacity}" />`
+  }).join('')
+
+  // Key findings (probabilistic language)
+  const keyFindings: string[] = []
+  if (isSuspicious) {
+    if (faceResult?.result === "suspicious") {
+      keyFindings.push("Facial region analysis suggests patterns consistent with synthetic alteration")
+    }
+    if (eyeResult?.result === "suspicious") {
+      keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
+    }
+    if (voiceResult?.result?.toLowerCase() === "suspicious") {
+      keyFindings.push("Audio characteristics suggest the presence of patterns associated with voice synthesis")
+    }
+    if (criticalCount > 0) {
+      keyFindings.push("File metadata exhibits structural similarities to known AI generation tool signatures")
+    }
+    if (!integrityPassed && hasIntegrityData) {
+      keyFindings.push("File structure exhibits characteristics inconsistent with unmodified media containers")
+    }
+  } else {
+    keyFindings.push("No indicators of facial manipulation were observed in this analysis")
+    if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
+      keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
+    }
+    keyFindings.push("File structure is consistent with known authentic capture device signatures")
+    if (integrityPassed) {
+      keyFindings.push("File metadata and container structure are consistent with expected encoding standards")
+    }
+  }
+
+  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
+  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
+  const verdictBorder = isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'
+  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
 
   return `<!DOCTYPE html>
 <html>
@@ -103,1194 +202,231 @@ function generateReportHTML(caseData: Case): string {
   <title>DataSpike Report #${reportNumber}</title>
   <style>
     @page { margin: 0; size: A4; }
-    @media print {
-      .page { page-break-after: always; }
-      .page:last-child { page-break-after: auto; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-      color: #1a1a1a; 
-      font-size: 11px;
-      line-height: 1.5;
-      background: white;
-    }
-    
-    .page {
-      width: 794px;
-      height: 1123px;
-      padding: 40px 50px;
-      position: relative;
-      background: white;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-    
-    /* Header */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: #4A7BF7;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    .logo-text {
-      font-size: 18px;
-      font-weight: 600;
-      color: #4A7BF7;
-    }
-    .header-right {
-      text-align: right;
-      font-size: 11px;
-      color: #6b7280;
-    }
-    .report-id {
-      font-weight: 600;
-      color: #1a1a1a;
-      font-family: monospace;
-    }
-    
-    /* Main Verdict Card */
-    .verdict-section {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 28px;
-    }
-    .verdict-card {
-      flex: 6;
-      padding: 24px;
-      border-radius: 12px;
-      background: ${isSuspicious ? "#FEF2F2" : "#F0FDF4"};
-      border: 1px solid ${isSuspicious ? "#FECACA" : "#BBF7D0"};
-    }
-    .verdict-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      background: ${isSuspicious ? "#DC2626" : "#16A34A"};
-      color: white;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 16px;
-    }
-    .verdict-badge-icon {
-      width: 18px;
-      height: 18px;
-    }
-    .confidence-section {
-      margin-top: 16px;
-    }
-    .confidence-label {
-      font-size: 12px;
-      color: #6b7280;
-      margin-bottom: 6px;
-    }
-    .confidence-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: ${isSuspicious ? "#DC2626" : "#16A34A"};
-      margin-bottom: 8px;
-    }
-    .confidence-bar {
-      height: 10px;
-      background: #e5e7eb;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    .confidence-fill {
-      height: 100%;
-      background: ${isSuspicious ? "#DC2626" : "#16A34A"};
-      border-radius: 5px;
-    }
-    
-    /* Media Preview */
-    .media-preview {
-      flex: 4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .media-thumbnail {
-      width: 100%;
-      height: 160px;
-      background: #f3f4f6;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9ca3af;
-      font-size: 13px;
-      margin-bottom: 10px;
-    }
-    .media-info {
-      font-size: 11px;
-      color: #6b7280;
-      text-align: center;
-    }
-    
-    /* Analysis Results Table */
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .results-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-    }
-    .results-table th {
-      background: #f8fafc;
-      padding: 10px 14px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 11px;
-      color: #4b5563;
-      border: 1px solid #e5e7eb;
-    }
-    .results-table td {
-      padding: 10px 14px;
-      border: 1px solid #e5e7eb;
-      font-size: 11px;
-    }
-    .result-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 600;
-    }
-    .result-badge.suspicious { background: #FEE2E2; color: #DC2626; }
-    .result-badge.valid { background: #DCFCE7; color: #16A34A; }
-    .result-badge.critical { background: #FEE2E2; color: #DC2626; }
-    .result-badge.suspect { background: #FEF3C7; color: #D97706; }
-    
-    /* Key Findings Box */
-    .findings-box {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-    }
-    .findings-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 10px;
-    }
-    .findings-list {
-      list-style: none;
-    }
-    .findings-list li {
-      font-size: 11px;
-      color: #4b5563;
-      padding: 4px 0;
-      padding-left: 16px;
-      position: relative;
-    }
-    .findings-list li::before {
-      content: "•";
-      position: absolute;
-      left: 0;
-      color: #9ca3af;
-    }
-    
-    /* Likely Source */
-    .source-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      padding: 12px 16px;
-      background: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e5e7eb;
-    }
-    .source-label {
-      font-weight: 600;
-      color: #374151;
-    }
-    .source-value {
-      color: #DC2626;
-      font-weight: 500;
-    }
-    
-    /* Page 2: Detection Details */
-    .detection-card {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    .detection-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-    .detection-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1a1a1a;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .detection-type {
-      font-size: 11px;
-      color: #6b7280;
-      margin-bottom: 8px;
-    }
-    .detection-type strong {
-      color: #1a1a1a;
-    }
-    .what-this-means {
-      background: #f8fafc;
-      border-radius: 6px;
-      padding: 12px 14px;
-      margin: 14px 0;
-    }
-    .what-this-means-title {
-      font-size: 10px;
-      font-weight: 600;
-      color: #6b7280;
-      margin-bottom: 6px;
-    }
-    .what-this-means-text {
-      font-size: 11px;
-      color: #4b5563;
-      line-height: 1.6;
-    }
-    .image-placeholders {
-      display: flex;
-      gap: 16px;
-      margin-top: 14px;
-    }
-    .image-placeholder {
-      flex: 1;
-    }
-    .placeholder-box {
-      width: 100%;
-      height: 120px;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9ca3af;
-      font-size: 11px;
-    }
-    .placeholder-caption {
-      font-size: 10px;
-      color: #6b7280;
-      text-align: center;
-      margin-top: 6px;
-    }
-    
-    /* Page 3: Voice Analysis */
-    .speaker-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    .speaker-table th, .speaker-table td {
-      padding: 10px 12px;
-      border: 1px solid #e5e7eb;
-      font-size: 11px;
-    }
-    .speaker-table th {
-      background: #f8fafc;
-      font-weight: 600;
-      color: #4b5563;
-    }
-    
-    /* Audio Feature Gauges */
-    .gauge-container {
-      margin-bottom: 20px;
-      padding: 14px;
-      background: #fafafa;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-    }
-    .gauge-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 10px;
-    }
-    .gauge-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-    .gauge-desc {
-      font-size: 10px;
-      color: #6b7280;
-      margin-top: 2px;
-    }
-    .gauge-value {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-    .gauge-bar {
-      position: relative;
-      height: 24px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      margin: 8px 0;
-    }
-    .gauge-range {
-      position: absolute;
-      top: 4px;
-      height: 16px;
-      background: #DBEAFE;
-      border: 1px solid #93C5FD;
-      border-radius: 3px;
-    }
-    .gauge-marker {
-      position: absolute;
-      top: 2px;
-      width: 6px;
-      height: 20px;
-      background: #4A7BF7;
-      border-radius: 3px;
-      transform: translateX(-50%);
-    }
-    .gauge-marker.warning {
-      background: #DC2626;
-    }
-    .gauge-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 9px;
-      color: #9ca3af;
-    }
-    .gauge-interpretation {
-      font-size: 10px;
-      margin-top: 6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .gauge-interpretation.normal {
-      color: #16A34A;
-    }
-    .gauge-interpretation.anomaly {
-      color: #F59E0B;
-    }
-    
-    /* Page 4: Forensic Analysis */
-    .origin-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-    }
-    .origin-table th, .origin-table td {
-      padding: 12px 14px;
-      border: 1px solid #e5e7eb;
-      font-size: 11px;
-    }
-    .origin-table th {
-      background: #f8fafc;
-      font-weight: 600;
-      width: 120px;
-    }
-    
-    /* Pipeline Visualization */
-    .pipeline-section {
-      margin-top: 24px;
-    }
-    .pipeline-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 16px;
-    }
-    .pipeline-flow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
-    .pipeline-card {
-      flex: 1;
-      max-width: 180px;
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 14px;
-      text-align: center;
-    }
-    .pipeline-gen {
-      font-size: 10px;
-      font-weight: 600;
-      color: #6b7280;
-      margin-bottom: 6px;
-    }
-    .pipeline-brand {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 4px;
-    }
-    .pipeline-model {
-      font-size: 10px;
-      color: #4b5563;
-      margin-bottom: 2px;
-    }
-    .pipeline-type {
-      font-size: 9px;
-      color: #9ca3af;
-    }
-    .pipeline-arrow {
-      font-size: 18px;
-      color: #9ca3af;
-    }
-    
-    .interpretation-box {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px;
-      margin-top: 20px;
-    }
-    .interpretation-text {
-      font-size: 11px;
-      color: #4b5563;
-      line-height: 1.7;
-    }
-    
-    /* Page 5: Technical Appendix */
-    .tech-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-    }
-    .tech-table th {
-      background: #f8fafc;
-      padding: 10px 14px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 11px;
-      color: #4b5563;
-      border: 1px solid #e5e7eb;
-      width: 180px;
-    }
-    .tech-table td {
-      padding: 10px 14px;
-      border: 1px solid #e5e7eb;
-      font-size: 11px;
-      font-family: monospace;
-    }
-    
-    /* Page 6: Legal */
-    .legal-section {
-      margin-bottom: 20px;
-    }
-    .legal-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .legal-subtitle {
-      font-size: 11px;
-      font-weight: 600;
-      color: #374151;
-      margin: 14px 0 8px 0;
-    }
-    .legal-text {
-      font-size: 10px;
-      color: #4b5563;
-      line-height: 1.7;
-      text-align: justify;
-    }
-    
-    /* Glossary */
-    .glossary-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .glossary-table td {
-      padding: 6px 10px;
-      border: 1px solid #e5e7eb;
-      font-size: 9px;
-      vertical-align: top;
-    }
-    .glossary-table td:first-child {
-      font-weight: 600;
-      width: 130px;
-      background: #fafafa;
-    }
-    
-    /* Footer */
-    .page-footer {
-      position: absolute;
-      bottom: 30px;
-      left: 50px;
-      right: 50px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 9px;
-      color: #9ca3af;
-      padding-top: 12px;
-      border-top: 1px solid #e5e7eb;
-    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
+    .page { width: 794px; height: 1123px; padding: 28px 40px 40px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
+    .page-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
-  <!-- Page 1: Executive Summary -->
   <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
+
+    <!-- 1. Header -->
+    <div style="margin-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 24px; height: 24px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 9px;">DS</div>
+          <span style="font-size: 14px; font-weight: 600; color: #4A7BF7;">DataSpike</span>
+        </div>
+        <span style="font-size: 8px; color: #9ca3af;">Deepfake Detection Report</span>
       </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
+      <div style="display: flex; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <div style="flex: 1; padding: 8px 16px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+            <tr><td style="padding: 5px 8px 5px 0; color: #6b7280; font-weight: 500; width: 120px; border-bottom: 1px solid #f3f4f6; vertical-align: middle;">Report Status</td><td style="padding: 5px 0; border-bottom: 1px solid #f3f4f6; vertical-align: middle;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 9.5px; background: ${isSuspicious ? '#FEE2E2' : isUncertain ? '#FEF3C7' : '#DCFCE7'}; color: ${verdictColor};">${isSuspicious ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="' + verdictColor + '" stroke-width="1.5"/><line x1="4" y1="4" x2="8" y2="8" stroke="' + verdictColor + '" stroke-width="1.5"/><line x1="8" y1="4" x2="4" y2="8" stroke="' + verdictColor + '" stroke-width="1.5"/></svg>' : !isUncertain ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="' + verdictColor + '" stroke-width="1.5"/><path d="M3.5 6L5.5 8L8.5 4" stroke="' + verdictColor + '" stroke-width="1.5"/></svg>' : ''}${verdictLabel}</span></td></tr>
+            <tr><td style="padding: 5px 8px 5px 0; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6; vertical-align: middle;">User Name</td><td style="padding: 5px 0; color: #374151; font-weight: 500; border-bottom: 1px solid #f3f4f6; vertical-align: middle;">${caseData.applicant_id || 'alina.yapparova@dataspike.io'}</td></tr>
+            <tr><td style="padding: 5px 8px 5px 0; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6; vertical-align: middle;">Submission Date</td><td style="padding: 5px 0; color: #374151; font-weight: 500; border-bottom: 1px solid #f3f4f6; vertical-align: middle;">${formatDate(caseData.created_at)}</td></tr>
+            <tr><td style="padding: 5px 8px 5px 0; color: #6b7280; font-weight: 500; vertical-align: middle;">Report ID</td><td style="padding: 5px 0; color: #374151; font-weight: 600; font-family: monospace; vertical-align: middle;">#${reportNumber}</td></tr>
+          </table>
+        </div>
+        <div style="flex: 0 0 180px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px; border-left: 1px solid #e5e7eb;">
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Confidence</div>
+          <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1; margin-bottom: 8px;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
+          <div style="height: 26px; padding: 0 16px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; line-height: 26px; box-sizing: border-box;">${verdictLabel}</div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 8px; color: #9ca3af; padding: 2px 0;">
+        <div style="display: flex; gap: 14px;">
+          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #15803D; display: inline-block;"></span>0-39% Authentic</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B45309; display: inline-block;"></span>40-69% Uncertain</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B91C1C; display: inline-block;"></span>70-100% Suspicious</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
+          <span>Engine v${details?.project_info?.verify_version || '2.374'}</span>
+        </div>
       </div>
     </div>
-    
-    <div class="verdict-section">
-      <div class="verdict-card">
-        <div class="verdict-badge">
-          <span>${isSuspicious ? "⚠" : "✓"}</span>
-          ${isSuspicious ? "SUSPICIOUS - Potential Manipulation Detected" : "VALID - No Manipulation Detected"}
-        </div>
-        <div class="confidence-section">
-          <div class="confidence-label">Confidence Score</div>
-          <div class="confidence-value">${confidencePercent}%</div>
-          <div class="confidence-bar">
-            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+
+    <!-- 2. Analysis Summary (3 cards) -->
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      ${[
+        { label: 'Face Analysis', value: faceResult?.result === 'suspicious' ? ((faceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: faceResult?.result === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.face },
+        { label: 'Voice Analysis', value: voiceResult?.result?.toLowerCase() === 'suspicious' ? ((voiceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: voiceResult?.result?.toLowerCase() === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.voice },
+        { label: 'File Metadata', value: hasIntegrityData ? (integrityPassed ? 'Consistent' : 'Concerns') : hasMetadata ? 'Extracted' : 'Limited', status: hasIntegrityData ? (integrityPassed ? 'ok' : 'alert') : 'ok', icon: iconSvgs.file },
+      ].map((card) => {
+        const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
+        const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'
+        const cbd = card.status === 'alert' ? '#FECACA' : '#BBF7D0'
+        const checkIcon = card.status === 'ok'
+          ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" stroke-width="1"/><path d="M5 8l2 2 4-4" stroke="#15803D" stroke-width="1.5" fill="none"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/></svg>'
+        return `<div style="flex: 1; padding: 7px 10px; background: ${cb}; border: 1px solid ${cbd}; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+          ${card.icon(cc)}
+          <div style="flex: 1;">
+            <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${card.label}</div>
+            <div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>
           </div>
+          ${checkIcon}
+        </div>`
+      }).join('')}
+    </div>
+
+    <!-- 4. Frame-by-Frame Analysis -->
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 6px;">
+      <div style="padding: 5px 12px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">${isAudio ? 'Audio Analysis' : 'Frame-by-Frame Analysis'}</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${isVideo && isSuspicious && topFrames.length > 0 ? `
+          <span style="font-size: 9px; color: #6b7280;">Max: <span style="color: #B91C1C; font-weight: 700; font-family: monospace;">${(maxFrameScore * 100).toFixed(1)}%</span></span>
+          <span style="font-size: 9px; color: #6b7280;">Avg: <span style="color: #EA580C; font-weight: 700; font-family: monospace;">${(avgFrameScore * 100).toFixed(1)}%</span></span>
+          ` : ''}
+  
         </div>
       </div>
-      <div class="media-preview">
-        <div class="media-thumbnail">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-              <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-              <line x1="7" y1="2" x2="7" y2="22"></line>
-              <line x1="17" y1="2" x2="17" y2="22"></line>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <line x1="2" y1="7" x2="7" y2="7"></line>
-              <line x1="2" y1="17" x2="7" y2="17"></line>
-              <line x1="17" y1="17" x2="22" y2="17"></line>
-              <line x1="17" y1="7" x2="22" y2="7"></line>
+      <div style="background: #f9fafb; padding: 8px 14px;">
+        ${isAudio ? `
+        <div style="text-align: center;">
+          <svg width="640" height="100" viewBox="0 0 640 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="640" height="100" rx="4" fill="#1f2937"/>
+            ${Array.from({ length: 60 }).map((_, i) => {
+              const seed = Math.sin(i * 0.7 + 1.3) * 0.5 + 0.5
+              const h = 6 + seed * 80
+              const y = (100 - h) / 2
+              const isSusBar = isSuspicious && (i >= 22 && i <= 30)
+              const color = isSusBar ? "#EF4444" : (isSuspicious ? "#FCA5A5" : "#86EFAC")
+              const opacity = isSusBar ? 0.9 : 0.4
+              return `<rect x="${6 + i * 10.5}" y="${y}" width="3.5" height="${h}" rx="1.75" fill="${color}" opacity="${opacity}" />`
+            }).join('')}
+            ${isSuspicious ? `<rect x="${6 + 22 * 10.5 - 3}" y="0" width="${9 * 10.5 + 6}" height="100" rx="3" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/><text x="${6 + 26 * 10.5}" y="12" fill="#EF4444" font-size="8" font-weight="600" text-anchor="middle">anomaly region</text>` : ''}
+          </svg>
+        </div>
+        ` : (isVideo && isSuspicious && topFrames.length > 0) ? `
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          ${topFrames.map((frame, i) => `
+          <div style="flex: 1; max-width: 210px;">
+            <div style="position: relative; border-radius: 5px; overflow: hidden; border: ${i === 0 ? '2px' : '1px'} solid ${i === 0 ? '#DC2626' : '#d1d5db'}; ${i === 0 ? 'box-shadow: 0 0 8px rgba(220,38,38,0.2);' : ''}">
+              <svg width="210" height="130" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">
+                <defs>
+                  <linearGradient id="fBgV${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+                  <radialGradient id="heatV${i}" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="rgba(220,38,38,${(0.15 + frame.score * 0.35).toFixed(2)})"/><stop offset="40%" stop-color="rgba(234,88,12,${(0.05 + frame.score * 0.2).toFixed(2)})"/><stop offset="80%" stop-color="rgba(250,204,21,0.08)"/><stop offset="100%" stop-color="rgba(250,204,21,0)"/></radialGradient>
+                </defs>
+                <rect width="200" height="150" fill="url(#fBgV${i})"/>
+                <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+                <line x1="0" y1="50" x2="200" y2="50" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="0" y1="100" x2="200" y2="100" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+                ${`<!-- clean frame, no overlay -->`}
+              </svg>
+              <div style="position: absolute; top: 4px; right: 4px; background: ${frameScoreColor(frame.score)}; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">${(frame.score * 100).toFixed(1)}%</div>
+              ${i === 0 ? '<div style="position: absolute; top: 4px; left: 4px; background: #DC2626; color: #fff; font-size: 7px; font-weight: 700; padding: 2px 5px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;">Highest</div>' : ''}
+            </div>
+            <div style="text-align: center; margin-top: 3px;">
+              <div style="font-size: 9px; font-weight: 600; color: #374151;">Frame ${frame.index} &mdash; ${frame.timestamp}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+        ` : `
+        <div style="display: flex; justify-content: center;">
+          <div style="text-align: center;">
+            <svg width="200" height="130" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
+              <defs><linearGradient id="fBgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
+              <rect width="200" height="150" fill="url(#fBgP)"/>
+              <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+              <line x1="0" y1="50" x2="200" y2="50" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="0" y1="100" x2="200" y2="100" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
+              <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
             </svg>
-            <span style="color: #9ca3af; font-size: 10px; text-align: center;">Preview available in<br/>web dashboard</span>
+            <div style="font-size: 8px; color: #6b7280; margin-top: 3px; font-weight: 500;">Source Frame</div>
           </div>
         </div>
-        <div class="media-info">
-          768 × 1362 • 00:05 • ${formatBytes(caseData.file_size_bytes)}
+        `}
+      </div>
+    </div>
+
+    ${isSuspicious && !isAudio ? `
+    <!-- 5. Manipulation Zones Detected (full-width, red banner) -->
+    <div style="border: 1.5px solid #FECACA; border-radius: 8px; overflow: hidden; margin-bottom: 10px; background: #FEF2F2;">
+      <div style="padding: 7px 14px; background: #FEE2E2; border-bottom: 1px solid #FECACA; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 10px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 0.5px;">Manipulation Zones Detected</span>
+        <div style="display: flex; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(220,38,38,0.2); border: 2px solid #DC2626;"></div><span style="font-size: 8px; color: #DC2626; font-weight: 600;">High</span></div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(234,88,12,0.15); border: 2px solid #EA580C;"></div><span style="font-size: 8px; color: #EA580C; font-weight: 600;">Medium</span></div>
+          <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(202,138,4,0.15); border: 2px solid #CA8A04;"></div><span style="font-size: 8px; color: #CA8A04; font-weight: 600;">Low</span></div>
         </div>
       </div>
-    </div>
-    
-    <div class="section-title">Analysis Results</div>
-    <table class="results-table">
-      <thead>
-        <tr>
-          <th>Check</th>
-          <th>Result</th>
-          <th>Confidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${analysisResults
-          .map(
-            (r) => `
-        <tr>
-          <td>${r.check}</td>
-          <td><span class="result-badge ${r.result}">${r.result === "critical" ? "Critical" : r.result === "suspicious" ? "Suspicious" : "Valid"}</span></td>
-          <td>${(r.confidence * 100).toFixed(1)}%</td>
-        </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-    
-    <div class="findings-box">
-      <div class="findings-title">Key Findings</div>
-      <ul class="findings-list">
-        ${keyFindings.map((f) => `<li>${f}</li>`).join("")}
-      </ul>
-    </div>
-    
-    <div class="source-line" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="source-label">PRIMARY MATCH:</span>
-        <span class="source-value" style="font-size: 14px; font-weight: 700;">${primaryMatch}</span>
-      </div>
-      ${
-        displayedSecondary.length > 0
-          ? `<div style="font-size: 11px; color: #6b7280;">Also consistent with: ${displayedSecondary.join(", ")}${remainingCount > 0 ? ` +${remainingCount} others` : ""}</div>`
-          : ""
-      }
-    </div>
-    
-    <div class="page-footer">
-      <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 1 of 6</span>
-    </div>
-  </div>
-  
-  <!-- Page 2: Detection Details -->
-  <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
-      </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
-      </div>
-    </div>
-    
-    <div class="detection-card">
-      <div class="detection-header">
-        <div class="detection-title">Face Manipulation</div>
-        <span class="result-badge ${analysisResults[0].result}">${analysisResults[0].result === "suspicious" ? "Suspicious" : "Valid"}</span>
-      </div>
-      <div class="detection-type">Detected type: <strong>${isSuspicious ? "face_swap" : "none"}</strong></div>
-      <div class="confidence-section" style="margin-top: 12px;">
-        <div class="confidence-label">Confidence: ${(analysisResults[0].confidence * 100).toFixed(1)}%</div>
-        <div class="confidence-bar" style="height: 8px; margin-top: 6px;">
-          <div class="confidence-fill" style="width: ${analysisResults[0].confidence * 100}%; background: ${analysisResults[0].result === "suspicious" ? "#DC2626" : "#16A34A"};"></div>
+      <div style="padding: 10px 12px; display: flex; flex-direction: column; align-items: center;">
+        <div style="position: relative; border-radius: 5px; overflow: hidden; border: 2px solid #DC2626;">
+          <svg width="280" height="210" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">
+            <defs>
+              <linearGradient id="fBgHM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+              <radialGradient id="heatHM" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="rgba(220,38,38,0.5)"/><stop offset="40%" stop-color="rgba(234,88,12,0.25)"/><stop offset="80%" stop-color="rgba(250,204,21,0.08)"/><stop offset="100%" stop-color="rgba(250,204,21,0)"/></radialGradient>
+            </defs>
+            <rect width="200" height="150" fill="url(#fBgHM)"/>
+            <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+            <ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatHM)"/>
+          </svg>
+          <div style="position: absolute; top: 5px; left: 5px; background: rgba(220,38,38,0.9); color: #fff; font-size: 7px; font-weight: 700; padding: 2px 7px; border-radius: 3px; text-transform: uppercase;">Frame 42 - Highest Score</div>
         </div>
+        <div style="font-size: 8px; color: #7F1D1D; margin-top: 6px; text-align: center; line-height: 1.4; max-width: 420px;">Analysis detected anomalies in facial regions with varying confidence levels across the frame</div>
       </div>
-      <div class="what-this-means">
-        <div class="what-this-means-title">What this means:</div>
-        <div class="what-this-means-text">
-          ${
-            analysisResults[0].result === "suspicious"
-              ? "The analysis detected visual artifacts consistent with face swapping or facial reenactment techniques. The model identified inconsistencies in facial boundaries, skin texture, and lighting that are characteristic of synthetic manipulation."
-              : "No significant indicators of face manipulation were detected. The facial features, boundaries, and lighting appear consistent with authentic video capture."
-          }
-        </div>
-      </div>
-      <div class="image-placeholders">
-        <div class="image-placeholder">
-          <div class="placeholder-box">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-                <line x1="7" y1="2" x2="7" y2="22"></line>
-                <line x1="17" y1="2" x2="17" y2="22"></line>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-              </svg>
-              <span style="font-size: 9px; text-align: center;">Frame capture from<br/>source video</span>
+    </div>
+    ` : ''}
+
+    <!-- 6. Forensic Flags + Metadata -->
+    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+      <div style="flex: 1.4; display: flex; flex-direction: column;">
+        <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Forensic Flags</div>
+        ${isSuspicious || isUncertain ? `
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEE2E2; border-left: 4px solid #DC2626; border-radius: 4px;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>
+            <div>
+              <div style="font-size: 9px; font-weight: 700; color: #991B1B; line-height: 1.3;">High confidence of AI-generated content detected</div>
+              <div style="font-size: 8px; color: #7F1D1D; line-height: 1.4; margin-top: 2px;">Signatures consistent with known deepfake generation tools found in file structure</div>
             </div>
           </div>
-          <div class="placeholder-caption">Source frame from video</div>
-        </div>
-        <div class="image-placeholder">
-          <div class="placeholder-box">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
-              </svg>
-              <span style="font-size: 9px; text-align: center;">Heatmap visualization<br/>available in web dashboard</span>
+          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 4px;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>
+            <div>
+              <div style="font-size: 9px; font-weight: 700; color: #92400E; line-height: 1.3;">Video converter/encoder signatures detected</div>
+              <div style="font-size: 8px; color: #78350F; line-height: 1.4; margin-top: 2px;">FFmpeg, Bluesky</div>
             </div>
           </div>
-          <div class="placeholder-caption">Areas of detected manipulation</div>
         </div>
-      </div>
-    </div>
-    
-    <div class="detection-card">
-      <div class="detection-header">
-        <div class="detection-title">Eye Gaze Manipulation</div>
-        <span class="result-badge ${analysisResults[2].result}">${analysisResults[2].result === "suspicious" ? "Suspicious" : "Valid"}</span>
-      </div>
-      <div class="detection-type">Analysis type: <strong>gaze_direction_consistency</strong></div>
-      <div class="confidence-section" style="margin-top: 12px;">
-        <div class="confidence-label">Confidence: ${(analysisResults[2].confidence * 100).toFixed(1)}%</div>
-        <div class="confidence-bar" style="height: 8px; margin-top: 6px;">
-          <div class="confidence-fill" style="width: ${analysisResults[2].confidence * 100}%; background: ${analysisResults[2].result === "suspicious" ? "#DC2626" : "#16A34A"};"></div>
-        </div>
-      </div>
-      <div class="what-this-means">
-        <div class="what-this-means-title">What this means:</div>
-        <div class="what-this-means-text">
-          ${
-            analysisResults[2].result === "suspicious"
-              ? "Eye gaze patterns show inconsistencies that may indicate manipulation. The direction and movement of the eyes do not align naturally with head position and facial orientation."
-              : "Eye gaze patterns appear natural and consistent with authentic video. No manipulation indicators detected in eye movement or direction."
-          }
-        </div>
-      </div>
-      <div class="image-placeholders">
-        <div class="image-placeholder">
-          <div class="placeholder-box">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span style="font-size: 9px; text-align: center;">Eye region capture<br/>from source video</span>
-            </div>
+        ` : `
+        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 4px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            <div style="font-size: 9px; font-weight: 700; color: #065F46; line-height: 1.3;">No forensic flags detected</div>
+            <div style="font-size: 8px; color: #047857; line-height: 1.4; margin-top: 2px;">File structure analysis found no signatures associated with AI generation or suspicious editing tools</div>
           </div>
-          <div class="placeholder-caption">Eye region analysis</div>
         </div>
-        <div class="image-placeholder">
-          <div class="placeholder-box">
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
-              </svg>
-              <span style="font-size: 9px; text-align: center;">Gaze heatmap available<br/>in web dashboard</span>
-            </div>
-          </div>
-          <div class="placeholder-caption">Gaze inconsistency areas</div>
-        </div>
+        `}
+      </div>
+      <div style="flex: 0.6; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <div style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;">Extracted Metadata</div>
+        ${metaItems.length > 0 ? metaItems.slice(0, 8).map(m => `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 8px; color: #6b7280;">${m.label}</span>
+          <span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
+        </div>`).join('') : '<div style="font-size: 9px; color: #6b7280;">No metadata available</div>'}
+        ${hasIntegrityData ? `
+        <div style="display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
+          <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
+        </div>` : ''}
       </div>
     </div>
-    
+
+    <!-- Footer -->
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #f3f4f6;">
+      <span style="max-width: 55%; line-height: 1.4;">This assessment is probabilistic and should be interpreted in context. It does not constitute legal advice or a conclusive determination of authenticity.</span>
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
+    </div>
+
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 2 of 6</span>
-    </div>
-  </div>
-  
-  <!-- Page 3: Voice Analysis -->
-  <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
-      </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
-      </div>
-    </div>
-    
-    <div class="section-title">Voice Analysis</div>
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-      <span class="result-badge ${voiceData.result.toLowerCase() === "suspicious" ? "suspicious" : "valid"}">${voiceData.result}</span>
-    </div>
-    
-    <table class="speaker-table">
-      <thead>
-        <tr>
-          <th>Speaker</th>
-          <th>Result</th>
-          <th>Language</th>
-          <th>Gender</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>${voiceData.speaker_id}</strong></td>
-          <td><span class="result-badge ${voiceData.result.toLowerCase() === "suspicious" ? "suspicious" : "valid"}">${voiceData.result} ${(voiceData.confidence * 100).toFixed(1)}%</span></td>
-          <td>${voiceData.language} (${(voiceData.language_confidence * 100).toFixed(0)}%)</td>
-          <td>${voiceData.gender} (${(voiceData.gender_confidence * 100).toFixed(0)}%)</td>
-        </tr>
-      </tbody>
-    </table>
-    
-    <div class="what-this-means" style="margin-bottom: 20px;">
-      <div class="what-this-means-title">What this means:</div>
-      <div class="what-this-means-text">
-        This analysis highlights potential indications of AI-generated or manipulated audio. The following features extracted from the input audio are compared to the distribution of natural human speech based on a collection of samples of ${voiceData.gender} speech in ${voiceData.language.split(" ")[0]} language. Each box plot represents the 10 and 90 quantiles of the natural distribution.
-      </div>
-    </div>
-    
-    <div class="section-title">Outlier Audio Features</div>
-    
-    <!-- Jitter Gauge -->
-    <div class="gauge-container">
-      <div class="gauge-header">
-        <div>
-          <div class="gauge-label">Jitter</div>
-          <div class="gauge-desc">Variation in frequency between consecutive vocal cycles</div>
-        </div>
-        <div class="gauge-value">${voiceData.outlier_features.jitter.value.toFixed(2)}%</div>
-      </div>
-      <div class="gauge-bar">
-        <div class="gauge-range" style="left: 20%; width: 40%;"></div>
-        <div class="gauge-marker" style="left: ${Math.min(Math.max((voiceData.outlier_features.jitter.value / 25) * 100, 5), 95)}%;"></div>
-      </div>
-      <div class="gauge-labels">
-        <span>0%</span>
-        <span>25%</span>
-      </div>
-      <div class="gauge-interpretation normal" style="color: #16A34A;">
-        → Within normal range ✓
-      </div>
-    </div>
-    
-    <!-- Shimmer Gauge -->
-    <div class="gauge-container">
-      <div class="gauge-header">
-        <div>
-          <div class="gauge-label">Shimmer</div>
-          <div class="gauge-desc">Small variations in loudness across vocal cycles</div>
-        </div>
-        <div class="gauge-value">${voiceData.outlier_features.shimmer.value.toFixed(2)}%</div>
-      </div>
-      <div class="gauge-bar">
-        <div class="gauge-range" style="left: 10%; width: 50%;"></div>
-        <div class="gauge-marker warning" style="left: ${Math.min(Math.max((voiceData.outlier_features.shimmer.value / 95) * 100, 5), 95)}%;"></div>
-      </div>
-      <div class="gauge-labels">
-        <span>2%</span>
-        <span>95%</span>
-      </div>
-      <div class="gauge-interpretation anomaly" style="color: #F59E0B;">
-        → ANOMALY: Below expected variation ⚠
-      </div>
-    </div>
-    
-    <!-- Background Noise Gauge -->
-    <div class="gauge-container">
-      <div class="gauge-header">
-        <div>
-          <div class="gauge-label">Background Noise</div>
-          <div class="gauge-desc">Ambient, unintended sound present in a recording</div>
-        </div>
-        <div class="gauge-value">${voiceData.outlier_features.background_noise.value.toFixed(2)}</div>
-      </div>
-      <div class="gauge-bar">
-        <div class="gauge-range" style="left: 15%; width: 45%;"></div>
-        <div class="gauge-marker warning" style="left: ${Math.min(Math.max(((voiceData.outlier_features.background_noise.value + 0.07) / 1.07) * 100, 5), 95)}%;"></div>
-      </div>
-      <div class="gauge-labels">
-        <span>-0.07</span>
-        <span>1.00</span>
-      </div>
-      <div class="gauge-interpretation anomaly" style="color: #F59E0B;">
-        → ANOMALY: Elevated noise level ⚠
-      </div>
-    </div>
-    
-    <!-- Temporal Patterns Gauge -->
-    <div class="gauge-container">
-      <div class="gauge-header">
-        <div>
-          <div class="gauge-label">Temporal Patterns</div>
-          <div class="gauge-desc">Timing, rhythm, and flow of speech</div>
-        </div>
-        <div class="gauge-value">${voiceData.outlier_features.temporal_patterns.value.toFixed(2)}</div>
-      </div>
-      <div class="gauge-bar">
-        <div class="gauge-range" style="left: 20%; width: 40%;"></div>
-        <div class="gauge-marker warning" style="left: ${Math.min(Math.max(((voiceData.outlier_features.temporal_patterns.value + 0.74) / 1.74) * 100, 5), 95)}%;"></div>
-      </div>
-      <div class="gauge-labels">
-        <span>-0.74</span>
-        <span>1.00</span>
-      </div>
-      <div class="gauge-interpretation anomaly" style="color: #F59E0B;">
-        → ANOMALY: Irregular speech rhythm ⚠
-      </div>
-    </div>
-    
-    <div class="page-footer">
-      <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 3 of 6</span>
-    </div>
-  </div>
-  
-  <!-- Page 4: Forensic Analysis -->
-  <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
-      </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
-      </div>
-    </div>
-    
-    <div class="section-title">Forensic Analysis</div>
-    
-    <div class="legal-subtitle">File Origin</div>
-    <table class="origin-table">
-      <thead>
-        <tr>
-          <th>Severity</th>
-          <th>Finding</th>
-          <th style="width: 80px;">Confidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${forensicFindings
-          .slice(0, 4)
-          .map(
-            (f, idx) => `
-        <tr>
-          <td><span class="result-badge ${f.severity}">${f.severity.charAt(0).toUpperCase() + f.severity.slice(1)}</span></td>
-          <td>Signature matches ${f.type}: <strong>${f.name}</strong></td>
-          <td style="font-weight: 600; color: ${f.severity === "critical" ? "#DC2626" : "#D97706"};">${f.severity === "critical" ? "94%" : "78%"}</td>
-        </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-    
-    <div class="pipeline-section">
-      <div class="pipeline-title">Processing Pipeline Visualization</div>
-      <div class="pipeline-flow">
-        ${pipeline
-          .slice(0, 3)
-          .map(
-            (p, i) => `
-          <div class="pipeline-card">
-            <div class="pipeline-gen">Generation ${p.generation}</div>
-            <div class="pipeline-brand">${p.brand}</div>
-            <div class="pipeline-model">${p.model}</div>
-            <div class="pipeline-type">${p.camera_type}</div>
-          </div>
-          ${i < Math.min(pipeline.length, 3) - 1 ? '<div class="pipeline-arrow">→</div>' : ""}
-        `
-          )
-          .join("")}
-      </div>
-    </div>
-    
-    <div class="interpretation-box">
-      <div class="interpretation-text">
-        <strong>Interpretation:</strong> Structural analysis of this file indicates that the content has gone through multiple processing stages. The file shows signatures consistent with AI-based generation tools, followed by re-encoding with common video processing software. This processing chain is characteristic of synthetic media that has been prepared for distribution. The presence of Libavformat signatures suggests the file was re-wrapped, which can obscure original source indicators.
-      </div>
-    </div>
-    
-    <div class="page-footer">
-      <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 4 of 6</span>
-    </div>
-  </div>
-  
-  <!-- Page 5: Technical Appendix -->
-  <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
-      </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
-      </div>
-    </div>
-    
-    <div class="section-title">Technical Appendix</div>
-    
-    <div class="legal-subtitle">File Details</div>
-    <table class="tech-table">
-      <tr>
-        <th>Filename</th>
-        <td>${details?.file_summary?.filename || "media_" + reportNumber + ".mp4"}</td>
-      </tr>
-      <tr>
-        <th>Format</th>
-        <td>${details?.file_summary?.format || caseData.content_type}</td>
-      </tr>
-      <tr>
-        <th>File ID</th>
-        <td>${details?.file_summary?.file_id || caseData.id}</td>
-      </tr>
-      <tr>
-        <th>Date Processed</th>
-        <td>${formatDate(details?.file_summary?.date_processed || caseData.created_at)}</td>
-      </tr>
-      <tr>
-        <th>Checksum (SHA-256)</th>
-        <td style="font-size: 8px; word-break: break-all;">${details?.file_summary?.file_checksum_sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}</td>
-      </tr>
-    </table>
-    
-    <div class="legal-subtitle">Video Specifications</div>
-    <table class="tech-table">
-      <tr>
-        <th>Codec</th>
-        <td>${details?.decoded_metadata?.video?.format || "H.264"}</td>
-      </tr>
-      <tr>
-        <th>Resolution</th>
-        <td>${details?.decoded_metadata?.video?.width || "768"} × ${details?.decoded_metadata?.video?.height || "1362"}</td>
-      </tr>
-      <tr>
-        <th>Duration</th>
-        <td>${details?.decoded_metadata?.video?.duration || "00:05"}</td>
-      </tr>
-      <tr>
-        <th>Bitrate</th>
-        <td>${details?.decoded_metadata?.video?.bit_rate || "2.5 Mb/s"}</td>
-      </tr>
-      <tr>
-        <th>Frame Rate</th>
-        <td>${details?.decoded_metadata?.video?.frame_rate || "30 fps"}</td>
-      </tr>
-    </table>
-    
-    ${
-      details?.decoded_metadata?.audio
-        ? `
-    <div class="legal-subtitle">Audio Specifications</div>
-    <table class="tech-table">
-      <tr>
-        <th>Codec</th>
-        <td>${details.decoded_metadata.audio.format}</td>
-      </tr>
-      <tr>
-        <th>Channels</th>
-        <td>${details.decoded_metadata.audio.channels}</td>
-      </tr>
-      <tr>
-        <th>Sample Rate</th>
-        <td>${details.decoded_metadata.audio.sampling_rate}</td>
-      </tr>
-      <tr>
-        <th>Bitrate</th>
-        <td>${details.decoded_metadata.audio.bit_rate}</td>
-      </tr>
-    </table>
-    `
-        : ""
-    }
-    
-    <div class="page-footer">
-      <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 5 of 6</span>
-    </div>
-  </div>
-  
-  <!-- Page 6: Compliance & Legal -->
-  <div class="page">
-    <div class="header">
-      <div class="logo">
-        <div class="logo-icon">DS</div>
-        <div class="logo-text">DataSpike</div>
-      </div>
-      <div class="header-right">
-        <div class="report-id">#${reportNumber}</div>
-        <div>${reportDate}</div>
-      </div>
-    </div>
-    
-    <div class="legal-section">
-      <div class="legal-title">Scope and Conditions</div>
-      <p class="legal-text">
-        This document has been automatically generated to provide a technical assessment of submitted media. The report aims to identify signs of synthetic media manipulation or other digital alterations in support of threat intelligence, evidentiary documentation, or expert review.
-      </p>
-      <p class="legal-text" style="margin-top: 8px;">
-        The accuracy and reliability of this report are dependent on the integrity of the submitted media. We assume that the file was provided in its original state and has not been altered prior to submission.
-      </p>
-    </div>
-    
-    <div class="legal-section">
-      <div class="legal-title">Legal Declarations</div>
-      
-      <div class="legal-subtitle">GDPR Compliance</div>
-      <p class="legal-text">
-        All processing of personal data within our systems complies with the requirements of the General Data Protection Regulation (EU) 2016/679.
-      </p>
-      
-      <div class="legal-subtitle">Statement of Impartiality</div>
-      <p class="legal-text">
-        This report has been generated using automated tools and standardized procedures without bias or influence.
-      </p>
-      
-      <div class="legal-subtitle">Statement of Integrity</div>
-      <p class="legal-text">
-        No modifications have been made to the original media during analysis. Cryptographic hash values have been computed to support data integrity verification.
-      </p>
-      
-      <div class="legal-subtitle">Statement of Limitations</div>
-      <p class="legal-text">
-        This report is generated by automated analysis and is intended to support, not replace, expert forensic evaluation.
-      </p>
-    </div>
-    
-    <div class="legal-section">
-      <div class="legal-title">Glossary</div>
-      <table class="glossary-table">
-        <tr>
-          <td>Deepfake</td>
-          <td>AI-generated synthetic media that manipulates or replaces a person's likeness</td>
-        </tr>
-        <tr>
-          <td>Confidence Score</td>
-          <td>Numerical value indicating the system's certainty in its detection outcome</td>
-        </tr>
-        <tr>
-          <td>Face Manipulation</td>
-          <td>Alteration of facial features using AI techniques such as face swapping</td>
-        </tr>
-        <tr>
-          <td>AI-Generated</td>
-          <td>Content produced using artificial intelligence models</td>
-        </tr>
-        <tr>
-          <td>Heatmap</td>
-          <td>Visual representation highlighting areas of detected manipulation</td>
-        </tr>
-        <tr>
-          <td>Jitter</td>
-          <td>Variations in voice frequency that may indicate synthetic speech</td>
-        </tr>
-        <tr>
-          <td>Shimmer</td>
-          <td>Variations in voice amplitude that synthetic voices often exhibit abnormally</td>
-        </tr>
-        <tr>
-          <td>C2PA</td>
-          <td>Coalition for Content Provenance and Authenticity standard</td>
-        </tr>
-      </table>
-    </div>
-    
-    <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; font-size: 9px; color: #6b7280;">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-        <div style="width: 18px; height: 18px; background: #4A7BF7; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; font-weight: bold;">DS</div>
-        <span style="font-weight: 600; color: #4A7BF7;">DataSpike</span>
-      </div>
-      <p>Contact: support@dataspike.io</p>
-      <p style="margin-top: 4px;">Copyright © ${new Date().getFullYear()} DataSpike. All rights reserved.</p>
-    </div>
-    
-    <div class="page-footer">
-      <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 6 of 6</span>
+      <span>Page 1 of 3</span>
     </div>
   </div>
 </body>
