@@ -318,7 +318,7 @@ function generateReportHTML(caseData: Case): string {
                 <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
                 <line x1="0" y1="50" x2="200" y2="50" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="0" y1="100" x2="200" y2="100" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
                 <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
-                ${i === 0 ? `<ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatV${i})"/>${heatZones.map(z => `<ellipse cx="${(z.x + z.w / 2) * 2}" cy="${(z.y + z.h / 2) * 1.5}" rx="${(z.w / 2) * 2}" ry="${(z.h / 2) * 1.5}" fill="none" stroke="rgba(220,38,38,0.7)" stroke-width="1.5" stroke-dasharray="4,3"/>`).join('')}` : `<ellipse cx="100" cy="60" rx="48" ry="52" fill="rgba(220,38,38,${(0.1 + frame.score * 0.3).toFixed(2)})"/>`}
+                ${`<!-- clean frame, no overlay -->`}
               </svg>
               <div style="position: absolute; top: 4px; right: 4px; background: ${frameScoreColor(frame.score)}; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">${(frame.score * 100).toFixed(1)}%</div>
               ${i === 0 ? '<div style="position: absolute; top: 4px; left: 4px; background: #DC2626; color: #fff; font-size: 7px; font-weight: 700; padding: 2px 5px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;">Highest</div>' : ''}
@@ -371,34 +371,21 @@ function generateReportHTML(caseData: Case): string {
           <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(202,138,4,0.15); border: 2px solid #CA8A04;"></div><span style="font-size: 8px; color: #CA8A04; font-weight: 600;">Low</span></div>
         </div>
       </div>
-      <div style="display: flex; padding: 12px 16px; gap: 16px; align-items: center;">
-        <div style="flex: 0 0 260px;">
-          <div style="position: relative; border-radius: 6px; overflow: hidden; border: 2px solid #DC2626;">
-            <svg width="260" height="195" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">
-              <defs>
-                <linearGradient id="fBgHM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
-                <radialGradient id="heatHM" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="rgba(220,38,38,0.5)"/><stop offset="40%" stop-color="rgba(234,88,12,0.25)"/><stop offset="80%" stop-color="rgba(250,204,21,0.08)"/><stop offset="100%" stop-color="rgba(250,204,21,0)"/></radialGradient>
-              </defs>
-              <rect width="200" height="150" fill="url(#fBgHM)"/>
-              <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
-              <ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatHM)"/>
-              ${heatZones.map(z => `<ellipse cx="${(z.x + z.w / 2) * 2}" cy="${(z.y + z.h / 2) * 1.5}" rx="${(z.w / 2) * 2}" ry="${(z.h / 2) * 1.5}" fill="none" stroke="rgba(220,38,38,0.7)" stroke-width="1.5" stroke-dasharray="4,3"/>`).join('')}
-            </svg>
-            <div style="position: absolute; top: 6px; left: 6px; background: rgba(220,38,38,0.9); color: #fff; font-size: 8px; font-weight: 700; padding: 3px 8px; border-radius: 3px; text-transform: uppercase;">Frame 42 - Highest Score</div>
-          </div>
+      <div style="padding: 10px 12px; display: flex; flex-direction: column; align-items: center;">
+        <div style="position: relative; border-radius: 5px; overflow: hidden; border: 2px solid #DC2626;">
+          <svg width="280" height="210" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; border-radius: 4px;">
+            <defs>
+              <linearGradient id="fBgHM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
+              <radialGradient id="heatHM" cx="50%" cy="40%" r="45%"><stop offset="0%" stop-color="rgba(220,38,38,0.5)"/><stop offset="40%" stop-color="rgba(234,88,12,0.25)"/><stop offset="80%" stop-color="rgba(250,204,21,0.08)"/><stop offset="100%" stop-color="rgba(250,204,21,0)"/></radialGradient>
+            </defs>
+            <rect width="200" height="150" fill="url(#fBgHM)"/>
+            <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
+            <ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatHM)"/>
+            ${heatZones.map(z => `<ellipse cx="${(z.x + z.w / 2) * 2}" cy="${(z.y + z.h / 2) * 1.5}" rx="${(z.w / 2) * 2}" ry="${(z.h / 2) * 1.5}" fill="none" stroke="rgba(220,38,38,0.7)" stroke-width="1.5" stroke-dasharray="4,3"/>`).join('')}
+          </svg>
+          <div style="position: absolute; top: 5px; left: 5px; background: rgba(220,38,38,0.9); color: #fff; font-size: 7px; font-weight: 700; padding: 2px 7px; border-radius: 3px; text-transform: uppercase;">Frame 42 - Highest Score</div>
         </div>
-        <div style="flex: 1;">
-          <div style="font-size: 10px; font-weight: 600; color: #991B1B; margin-bottom: 8px;">${heatZones.length} anomalous region${heatZones.length !== 1 ? 's' : ''} identified in highest-scoring frame</div>
-          ${heatZones.map(z => `
-          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; padding: 5px 8px; background: #FEE2E2; border-radius: 4px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${z.intensity === 'high' ? '#DC2626' : z.intensity === 'medium' ? '#EA580C' : '#CA8A04'}; flex-shrink: 0;"></div>
-            <div>
-              <span style="font-size: 10px; font-weight: 600; color: #991B1B;">${z.label}</span>
-              <span style="font-size: 9px; color: #7F1D1D; margin-left: 6px;">${z.intensity.charAt(0).toUpperCase() + z.intensity.slice(1)} confidence &middot; (${z.x},${z.y}) ${z.w}x${z.h}px</span>
-            </div>
-          </div>`).join('')}
-          <div style="font-size: 8px; color: #9ca3af; margin-top: 8px; font-style: italic; line-height: 1.5;">Highlighted regions indicate areas where the analysis model observed patterns potentially inconsistent with unaltered media.</div>
-        </div>
+        <div style="font-size: 8px; color: #7F1D1D; margin-top: 6px; text-align: center; line-height: 1.4; max-width: 420px;">Analysis detected anomalies in facial regions with varying confidence levels across the frame</div>
       </div>
     </div>
     ` : ''}

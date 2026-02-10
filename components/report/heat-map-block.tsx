@@ -202,7 +202,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
                     border: `${frame.isHighest ? "2px" : "1px"} solid ${frame.isHighest ? "#DC2626" : "#d1d5db"}`,
                     boxShadow: frame.isHighest ? "0 0 8px rgba(220,38,38,0.2)" : "none",
                   }}>
-                    <FrameSvg width={210} height={130} showHeat={frame.isHighest && isEnterprise} zones={frame.isHighest ? zones : undefined} />
+                    <FrameSvg width={210} height={130} />
                     <div style={{
                       position: "absolute", top: "4px", right: "4px",
                       background: frameScoreColor(frame.score), color: "#fff",
@@ -265,34 +265,16 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", padding: "8px 12px", gap: "12px", alignItems: "center" }}>
-            <div style={{ flex: "0 0 220px" }}>
-              <div style={{ position: "relative", borderRadius: "5px", overflow: "hidden", border: "2px solid #DC2626" }}>
-                <FrameSvg width={220} height={165} showHeat={true} zones={zones} />
-                <div style={{
-                  position: "absolute", top: "4px", left: "4px", background: "rgba(220,38,38,0.9)", color: "#fff",
-                  fontSize: "7px", fontWeight: 700, padding: "2px 6px", borderRadius: "3px", textTransform: "uppercase",
-                }}>Frame 42 - Highest Score</div>
-              </div>
+          <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ position: "relative", borderRadius: "5px", overflow: "hidden", border: "2px solid #DC2626" }}>
+              <FrameSvg width={280} height={210} showHeat={true} zones={zones} />
+              <div style={{
+                position: "absolute", top: "5px", left: "5px", background: "rgba(220,38,38,0.9)", color: "#fff",
+                fontSize: "7px", fontWeight: 700, padding: "2px 7px", borderRadius: "3px", textTransform: "uppercase",
+              }}>Frame 42 - Highest Score</div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "9px", fontWeight: 600, color: "#991B1B", marginBottom: "5px" }}>
-                {zones.length} anomalous region{zones.length !== 1 ? "s" : ""} identified in highest-scoring frame
-              </div>
-              {zones.map((z, i) => (
-                <div key={i} style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", padding: "4px 6px", background: "#FEE2E2", borderRadius: "4px" }}>
-                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: z.intensity === "high" ? "#DC2626" : z.intensity === "medium" ? "#EA580C" : "#CA8A04", flexShrink: 0 }} />
-                  <div>
-                    <span style={{ fontSize: "9px", fontWeight: 600, color: "#991B1B" }}>{z.label}</span>
-                    <span style={{ fontSize: "8px", color: "#7F1D1D", marginLeft: "5px" }}>
-                      {z.intensity.charAt(0).toUpperCase() + z.intensity.slice(1)} confidence &middot; ({z.x},{z.y}) {z.width}x{z.height}px
-                    </span>
-                  </div>
-                </div>
-              ))}
-              <div style={{ fontSize: "7px", color: "#9ca3af", marginTop: "4px", fontStyle: "italic", lineHeight: "1.4" }}>
-                Highlighted regions indicate areas where the analysis model observed patterns potentially inconsistent with unaltered media.
-              </div>
+            <div style={{ fontSize: "8px", color: "#7F1D1D", marginTop: "6px", textAlign: "center", lineHeight: "1.4", maxWidth: "420px" }}>
+              Analysis detected anomalies in facial regions with varying confidence levels across the frame
             </div>
           </div>
         </div>
