@@ -153,20 +153,22 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             flex: "0 0 210px",
             background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            padding: "24px 24px", borderLeft: "1px solid #e5e7eb",
+            padding: "28px 24px", borderLeft: "1px solid #e5e7eb",
+            gap: "0px",
           }}>
-            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
+            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center", marginBottom: "12px" }}>
               Overall Confidence
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center" }}>
-              <span style={{ fontSize: "46px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>{confidencePercent}</span>
-              <span style={{ fontSize: "22px", fontWeight: 600, color: verdictColor, lineHeight: 1, marginLeft: "2px" }}>%</span>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", marginBottom: "14px" }}>
+              <span style={{ fontSize: "52px", fontWeight: 700, color: verdictColor, lineHeight: "1" }}>{confidencePercent}</span>
+              <span style={{ fontSize: "24px", fontWeight: 600, color: verdictColor, lineHeight: "1", marginLeft: "2px" }}>%</span>
             </div>
             <div style={{
-              marginTop: "12px", padding: "6px 20px", borderRadius: "5px",
+              padding: "7px 24px", borderRadius: "5px",
               background: verdictColor, color: "#ffffff",
-              fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em",
+              fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em",
               textTransform: "uppercase", textAlign: "center",
+              lineHeight: "1",
             }}>
               {verdictLabel}
             </div>
