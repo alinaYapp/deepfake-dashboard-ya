@@ -148,12 +148,13 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
     if (meta.general.file_size) metaItems.push({ label: "File Size", value: meta.general.file_size })
   }
   if (meta?.video) {
+    if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.format ? `${meta.video.format} (${meta.video.codec_id})` : meta.video.codec_id })
     if (meta.video.width && meta.video.height) metaItems.push({ label: "Resolution", value: `${meta.video.width} x ${meta.video.height}` })
     if (meta.video.frame_rate) metaItems.push({ label: "Frame Rate", value: meta.video.frame_rate })
-    if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.codec_id })
   }
   if (meta?.audio) {
     if (meta.audio.sampling_rate) metaItems.push({ label: "Sample Rate", value: meta.audio.sampling_rate })
+    if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
   }
 
   const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
@@ -304,7 +305,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
         {/* LEFT: Regions of Interest / Findings */}
         <div style={{ flex: 1, padding: "12px 14px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
           <div style={{ fontSize: "10px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "8px" }}>
-            {isSuspicious ? "Detailed Findings" : "Analysis Summary"}
+            Analysis Details
           </div>
           {isSuspicious && regionDescs.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

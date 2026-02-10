@@ -7,90 +7,63 @@ interface ReportPageOneProps {
 }
 
 export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOneProps) {
-  const reportNumber = caseData.id.replace("chk_", "").toUpperCase()
-  const reportDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
+  const reportNumber = caseData.id.replace("chk_", "").toUpperCase().slice(0, 12)
+  const reportDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   })
   const details = caseData.details
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
 
-  const pipeline = details?.device_generation_history || []
-  const lastGen = pipeline[pipeline.length - 1]
-  const primaryMatch = lastGen?.brand || "Unknown"
-  const primaryType = lastGen?.camera_type || "Unknown"
-
-  const criticalCount = details?.forensic_analysis?.filter((f) => f.severity === "critical").length || 0
-  const suspectCount = details?.forensic_analysis?.filter((f) => f.severity === "suspect").length || 0
-  const totalFlags = criticalCount + suspectCount
   const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
   const voiceResult = details?.voice_analysis?.[0]
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; icon: string }
-  const metrics: Metric[] = []
-
-  if (faceResult) {
-    metrics.push({
-      label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: faceResult.result === "suspicious" ? "alert" : "ok",
-      icon: "face",
-    })
-  }
-  if (voiceResult) {
-    const voiceSuspicious = voiceResult.result?.toLowerCase() === "suspicious"
-    metrics.push({
-      label: "Voice Analysis",
-      value: voiceSuspicious ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: voiceSuspicious ? "alert" : "ok",
-      icon: "voice",
-    })
-  }
-  metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, icon: "forensic" }
-    : { label: "Forensic Flags", value: "None", status: "ok" as const, icon: "forensic" }
-  )
-
   const integrityOk = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
   const hasIntegrityData = !!details?.structural_consistency
-  const hasMetadata = !!details?.decoded_metadata
-
-  metrics.push({
-    label: "File Metadata",
-    value: hasIntegrityData ? (integrityOk ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
-    status: hasIntegrityData ? (integrityOk ? "ok" : "alert") : "ok",
-    icon: "file",
-  })
 
   const verdictColor = isSuspicious ? "#B91C1C" : isUncertain ? "#B45309" : "#15803D"
-  const verdictBg = isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4"
-  const verdictBorder = isSuspicious ? "#FECACA" : isUncertain ? "#FDE68A" : "#BBF7D0"
-  const verdictLabel = isSuspicious ? "SUSPICIOUS" : isUncertain ? "UNCERTAIN" : "AUTHENTIC"
+  const verdictLabel = isSuspicious ? "Suspicious" : isUncertain ? "Uncertain" : "Authentic"
 
-  const metricStatusColor = (s: "alert" | "warn" | "ok") => s === "alert" ? "#B91C1C" : s === "warn" ? "#B45309" : "#15803D"
-  const metricStatusBg = (s: "alert" | "warn" | "ok") => s === "alert" ? "#FEF2F2" : s === "warn" ? "#FFFBEB" : "#F0FDF4"
-  const metricBorderColor = (s: "alert" | "warn" | "ok") => s === "alert" ? "#FECACA" : s === "warn" ? "#FDE68A" : "#BBF7D0"
+  // Summary cards data (3 cards)
+  type SummaryCard = { label: string; value: string; status: "alert" | "ok"; iconSvg: string }
+  const faceConf = faceResult?.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear"
+  const voiceSus = voiceResult?.result?.toLowerCase() === "suspicious"
+  const voiceConf = voiceSus ? `${((voiceResult?.confidence ?? 0) * 100).toFixed(0)}%` : "Clear"
 
-  // Icon SVGs
-  const iconSvg = (type: string, color: string) => {
-    const svgs: Record<string, string> = {
-      face: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="4" stroke="${color}" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="${color}" stroke-width="1.5"/></svg>`,
-      voice: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" stroke="${color}" stroke-width="1.5"/><path d="M3 7c0 2.8 2.2 5 5 5s5-2.2 5-5" stroke="${color}" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="${color}" stroke-width="1.5"/></svg>`,
-      forensic: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z" stroke="${color}" stroke-width="1.5"/><path d="M8 8V5" stroke="${color}" stroke-width="1.5"/><circle cx="8" cy="10" r="0.8" fill="${color}"/></svg>`,
-      file: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1" stroke="${color}" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="${color}" stroke-width="1"/><line x1="5" y1="7.5" x2="11" y2="7.5" stroke="${color}" stroke-width="1"/><line x1="5" y1="10" x2="9" y2="10" stroke="${color}" stroke-width="1"/></svg>`,
-    }
-    return svgs[type] || ""
-  }
+  const summaryCards: SummaryCard[] = [
+    {
+      label: "Face Analysis",
+      value: faceConf,
+      status: faceResult?.result === "suspicious" ? "alert" : "ok",
+      iconSvg: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.5"/></svg>`,
+    },
+    {
+      label: "Voice Analysis",
+      value: voiceConf,
+      status: voiceSus ? "alert" : "ok",
+      iconSvg: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="7" y="1.5" width="4" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 8c0 3 2.5 5.5 5.5 5.5s5.5-2.5 5.5-5.5" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="13.5" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.5"/></svg>`,
+    },
+    {
+      label: "File Metadata",
+      value: hasIntegrityData ? (integrityOk ? "Consistent" : "Concerns") : "Extracted",
+      status: hasIntegrityData ? (integrityOk ? "ok" : "alert") : "ok",
+      iconSvg: `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3.5" y="1.5" width="11" height="15" rx="1.5" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="5.5" x2="12" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="6" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="1"/><line x1="6" y1="10.5" x2="10" y2="10.5" stroke="currentColor" stroke-width="1"/></svg>`,
+    },
+  ]
 
   return (
     <div
       style={{
         width: "794px",
         height: "1123px",
-        padding: "36px 48px 36px",
+        padding: "32px 44px 32px",
         position: "relative",
         background: "#ffffff",
         overflow: "hidden",
@@ -101,91 +74,176 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
         lineHeight: "1.5",
       }}
     >
-      {/* ── 1. Header Row: logo + verdict + score ── */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingBottom: "14px",
-        borderBottom: "2px solid #e5e7eb",
-        marginBottom: "16px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "28px", height: "28px", background: "#4A7BF7", borderRadius: "5px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#ffffff", fontWeight: 700, fontSize: "10px",
-          }}>DS</div>
-          <span style={{ fontSize: "15px", fontWeight: 600, color: "#4A7BF7" }}>DataSpike</span>
+      {/* ── HEADER: Logo + Metadata Table + Score ── */}
+      <div style={{ marginBottom: "16px" }}>
+        {/* Logo row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{
+              width: "30px", height: "30px", background: "#4A7BF7", borderRadius: "6px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#ffffff", fontWeight: 700, fontSize: "11px",
+            }}>DS</div>
+            <span style={{ fontSize: "17px", fontWeight: 600, color: "#4A7BF7" }}>DataSpike</span>
+          </div>
+          <div style={{ fontSize: "9px", color: "#9ca3af" }}>Deepfake Detection Report</div>
         </div>
 
-        {/* Center: Verdict badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "8px",
-            padding: "6px 14px", borderRadius: "6px",
-            background: verdictColor, color: "#ffffff",
-            fontWeight: 700, fontSize: "12px", letterSpacing: "0.04em",
-          }}>
-            {verdictLabel}
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "28px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>
-              {confidencePercent}<span style={{ fontSize: "14px", fontWeight: 600 }}>%</span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "11px", color: "#1a1a1a" }}>
-            #{reportNumber}
-          </div>
-          <div style={{ fontSize: "9px", color: "#6b7280", marginTop: "2px" }}>{reportDate}</div>
-        </div>
-      </div>
-
-      {/* ── 2. Confidence bar + case reference row ── */}
-      <div style={{ marginBottom: "14px" }}>
+        {/* Main header block: metadata table left, score right */}
         <div style={{
-          height: "5px", background: "rgba(0,0,0,0.05)", borderRadius: "3px", overflow: "hidden", marginBottom: "8px",
+          display: "flex", gap: "20px", alignItems: "stretch",
+          border: "1px solid #e5e7eb", borderRadius: "10px", overflow: "hidden",
         }}>
-          <div style={{ height: "100%", width: `${confidencePercent}%`, background: verdictColor, borderRadius: "3px" }} />
-        </div>
-        <div style={{ display: "flex", gap: "20px", fontSize: "9px", color: "#6b7280" }}>
-          <span>Case <span style={{ fontFamily: "monospace", color: "#374151" }}>{details?.project_info?.case_id ? details.project_info.case_id.split("-")[0] : caseData.id}</span></span>
-          <span>{caseData.content_type} &middot; {formatBytes(caseData.file_size_bytes)}</span>
-          <span>Submitted {formatDate(caseData.created_at)}</span>
-          <span>Engine v{details?.project_info?.verify_version || "2.374"}</span>
-        </div>
-      </div>
+          {/* Left: metadata table */}
+          <div style={{ flex: "1 1 0", padding: "14px 18px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+              <tbody>
+                {[
+                  {
+                    label: "Report Status",
+                    content: (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: "5px",
+                        padding: "3px 10px", borderRadius: "4px", fontWeight: 600, fontSize: "10px",
+                        background: isSuspicious ? "#FEE2E2" : isUncertain ? "#FEF3C7" : "#DCFCE7",
+                        color: verdictColor,
+                      }}>
+                        {isSuspicious && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <circle cx="6" cy="6" r="5" stroke={verdictColor} strokeWidth="1.5" />
+                            <line x1="4" y1="4" x2="8" y2="8" stroke={verdictColor} strokeWidth="1.5" />
+                            <line x1="8" y1="4" x2="4" y2="8" stroke={verdictColor} strokeWidth="1.5" />
+                          </svg>
+                        )}
+                        {!isSuspicious && !isUncertain && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <circle cx="6" cy="6" r="5" stroke={verdictColor} strokeWidth="1.5" />
+                            <path d="M3.5 6L5.5 8L8.5 4" stroke={verdictColor} strokeWidth="1.5" />
+                          </svg>
+                        )}
+                        {verdictLabel}
+                      </span>
+                    ),
+                  },
+                  { label: "User Name", content: <span style={{ color: "#374151", fontWeight: 500 }}>{caseData.applicant_id || "alina.yapparova@dataspike.io"}</span> },
+                  { label: "Submission Date", content: <span style={{ color: "#374151", fontWeight: 500 }}>{formatDate(caseData.created_at)}</span> },
+                  { label: "Report ID", content: <span style={{ color: "#374151", fontWeight: 600, fontFamily: "monospace", fontSize: "10px" }}>#{reportNumber}</span> },
+                ].map((row, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "6px 0", color: "#6b7280", fontWeight: 500, width: "130px", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none" }}>
+                      {row.label}
+                    </td>
+                    <td style={{ padding: "6px 0", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none" }}>
+                      {row.content}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* ── 3. Summary Cards (compact) ── */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-        {metrics.slice(0, 4).map((m, i) => (
-          <div key={i} style={{
-            flex: 1, padding: "10px 12px",
-            background: metricStatusBg(m.status),
-            border: `1px solid ${metricBorderColor(m.status)}`,
-            borderRadius: "8px",
-            display: "flex", alignItems: "center", gap: "10px",
+          {/* Right: large score */}
+          <div style={{
+            flex: "0 0 200px",
+            background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "16px 20px", borderLeft: "1px solid #e5e7eb",
           }}>
-            <div
-              dangerouslySetInnerHTML={{ __html: iconSvg(m.icon, metricStatusColor(m.status)) }}
-              style={{ flexShrink: 0 }}
-            />
-            <div>
-              <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.3px" }}>
-                {m.label}
-              </div>
-              <div style={{ fontSize: "13px", fontWeight: 700, color: metricStatusColor(m.status), lineHeight: "1.2" }}>
-                {m.value}
-              </div>
+            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Overall Confidence
+            </div>
+            <div style={{ fontSize: "42px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>
+              {confidencePercent}<span style={{ fontSize: "20px", fontWeight: 600 }}>%</span>
+            </div>
+            <div style={{
+              marginTop: "6px", padding: "4px 12px", borderRadius: "4px",
+              background: verdictColor, color: "#ffffff",
+              fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}>
+              {verdictLabel}
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Risk level legend */}
+        <div style={{
+          display: "flex", justifyContent: "center", gap: "24px",
+          marginTop: "8px", fontSize: "9px", color: "#6b7280",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#15803D", display: "inline-block" }} />
+            <span>0-39% Authentic</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#B45309", display: "inline-block" }} />
+            <span>40-69% Uncertain</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#B91C1C", display: "inline-block" }} />
+            <span>70-100% Suspicious</span>
+          </span>
+        </div>
+
+        {/* File info bar */}
+        <div style={{
+          display: "flex", justifyContent: "center", gap: "16px",
+          marginTop: "6px", fontSize: "9px", color: "#6b7280",
+          padding: "5px 0", borderTop: "1px solid #f3f4f6",
+        }}>
+          <span>Case: <span style={{ fontFamily: "monospace", color: "#374151" }}>{details?.project_info?.case_id ? details.project_info.case_id.split("-")[0] : caseData.id}</span></span>
+          <span style={{ color: "#d1d5db" }}>|</span>
+          <span>{caseData.content_type} - {formatBytes(caseData.file_size_bytes)}</span>
+          <span style={{ color: "#d1d5db" }}>|</span>
+          <span>Engine: v{details?.project_info?.verify_version || "2.374"}</span>
+        </div>
       </div>
 
-      {/* ── 4. HERO: Frame-by-Frame Analysis (takes most space) ── */}
+      {/* ── ANALYSIS SUMMARY (3 cards) ── */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "14px" }}>
+        {summaryCards.map((card, i) => {
+          const cardColor = card.status === "alert" ? "#B91C1C" : "#15803D"
+          const cardBg = card.status === "alert" ? "#FEF2F2" : "#F0FDF4"
+          const cardBorder = card.status === "alert" ? "#FECACA" : "#BBF7D0"
+          return (
+            <div key={i} style={{
+              flex: 1, padding: "12px 14px",
+              background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "8px",
+              display: "flex", alignItems: "center", gap: "10px",
+            }}>
+              <div
+                dangerouslySetInnerHTML={{ __html: card.iconSvg }}
+                style={{ flexShrink: 0, color: cardColor }}
+              />
+              <div>
+                <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.3px" }}>
+                  {card.label}
+                </div>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: cardColor, lineHeight: "1.2" }}>
+                  {card.value}
+                </div>
+              </div>
+              {/* Checkmark / X indicator */}
+              <div style={{ marginLeft: "auto" }}>
+                {card.status === "ok" ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" strokeWidth="1" />
+                    <path d="M5 8l2 2 4-4" stroke="#15803D" strokeWidth="1.5" fill="none" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" strokeWidth="1" />
+                    <line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" strokeWidth="1.5" />
+                    <line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" strokeWidth="1.5" />
+                  </svg>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── HERO: Frame-by-Frame Analysis + Manipulation Zones + Details ── */}
       <HeatMapBlock
         isSuspicious={isSuspicious}
         isEnterprise={isEnterprise}
@@ -197,27 +255,27 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
         overallScore={caseData.score}
       />
 
-      {/* ── 5. Inline footer: disclaimer + confidential ── */}
+      {/* ── Footer disclaimer ── */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         fontSize: "8px", color: "#9ca3af",
         paddingTop: "6px", borderTop: "1px solid #f3f4f6",
       }}>
-        <span style={{ maxWidth: "55%", lineHeight: "1.4" }}>
-          This assessment is probabilistic and should be interpreted in context. It does not constitute legal advice or a conclusive determination of authenticity.
+        <span style={{ maxWidth: "60%", lineHeight: "1.4" }}>
+          This assessment is probabilistic and should be interpreted in context. It does not constitute legal advice or a determination of authenticity.
         </span>
         <span style={{ letterSpacing: "1px", fontWeight: 600, color: "#6b7280" }}>CONFIDENTIAL</span>
       </div>
 
-      {/* ── Footer ── */}
+      {/* ── Absolute footer ── */}
       <div style={{
-        position: "absolute", bottom: "28px", left: "48px", right: "48px",
+        position: "absolute", bottom: "24px", left: "44px", right: "44px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         fontSize: "9px", color: "#9ca3af",
-        paddingTop: "10px", borderTop: "1px solid #e5e7eb",
+        paddingTop: "8px", borderTop: "1px solid #e5e7eb",
       }}>
         <span>DataSpike Deepfake Detection Report</span>
-        <span>Page 1 of 1</span>
+        <span>Page 1 of 3</span>
       </div>
     </div>
   )

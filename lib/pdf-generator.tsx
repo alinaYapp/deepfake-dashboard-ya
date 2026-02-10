@@ -140,6 +140,7 @@ function generateReportHTML(caseData: Case): string {
     if (meta.general.writing_application) metaItems.push({ label: "Encoder", value: meta.general.writing_application })
   }
   if (meta?.video) {
+    if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.format ? `${meta.video.format} (${meta.video.codec_id})` : meta.video.codec_id })
     if (meta.video.width && meta.video.height) metaItems.push({ label: "Resolution", value: `${meta.video.width} x ${meta.video.height}` })
     if (meta.video.frame_rate) metaItems.push({ label: "Frame Rate", value: meta.video.frame_rate })
   }
@@ -204,54 +205,73 @@ function generateReportHTML(caseData: Case): string {
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
-    .page { width: 794px; height: 1123px; padding: 36px 48px 36px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
-    .page-footer { position: absolute; bottom: 28px; left: 48px; right: 48px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9ca3af; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+    .page { width: 794px; height: 1123px; padding: 32px 44px 32px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
+    .page-footer { position: absolute; bottom: 24px; left: 44px; right: 44px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #9ca3af; padding-top: 10px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
   <div class="page">
 
-    <!-- 1. Header Row: logo + verdict + score + report ID -->
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 2px solid #e5e7eb; margin-bottom: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 28px; height: 28px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 10px;">DS</div>
-        <span style="font-size: 15px; font-weight: 600; color: #4A7BF7;">DataSpike</span>
+    <!-- 1. Header: Logo + Metadata Table + Score -->
+    <div style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 30px; height: 30px; background: #4A7BF7; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 11px;">DS</div>
+          <span style="font-size: 17px; font-weight: 600; color: #4A7BF7;">DataSpike</span>
+        </div>
+        <div style="font-size: 9px; color: #9ca3af;">Deepfake Detection Report</div>
       </div>
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <div style="display: inline-block; padding: 6px 14px; border-radius: 6px; background: ${verdictColor}; color: #fff; font-weight: 700; font-size: 12px; letter-spacing: 0.04em;">${verdictLabel}</div>
-        <div style="text-align: right;">
-          <div style="font-size: 28px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}<span style="font-size: 14px; font-weight: 600;">%</span></div>
+      <div style="display: flex; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;">
+        <div style="flex: 1; padding: 14px 18px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: 500; width: 130px; border-bottom: 1px solid #f3f4f6;">Report Status</td><td style="padding: 6px 0; border-bottom: 1px solid #f3f4f6;"><span style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 4px; font-weight: 600; font-size: 10px; background: ${isSuspicious ? '#FEE2E2' : isUncertain ? '#FEF3C7' : '#DCFCE7'}; color: ${verdictColor};">${isSuspicious ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="' + verdictColor + '" stroke-width="1.5"/><line x1="4" y1="4" x2="8" y2="8" stroke="' + verdictColor + '" stroke-width="1.5"/><line x1="8" y1="4" x2="4" y2="8" stroke="' + verdictColor + '" stroke-width="1.5"/></svg>' : !isUncertain ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="' + verdictColor + '" stroke-width="1.5"/><path d="M3.5 6L5.5 8L8.5 4" stroke="' + verdictColor + '" stroke-width="1.5"/></svg>' : ''}${verdictLabel}</span></td></tr>
+            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6;">User Name</td><td style="padding: 6px 0; color: #374151; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${caseData.applicant_id || 'alina.yapparova@dataspike.io'}</td></tr>
+            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6;">Submission Date</td><td style="padding: 6px 0; color: #374151; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${formatDate(caseData.created_at)}</td></tr>
+            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: 500;">Report ID</td><td style="padding: 6px 0; color: #374151; font-weight: 600; font-family: monospace; font-size: 10px;">#${reportNumber}</td></tr>
+          </table>
+        </div>
+        <div style="flex: 0 0 200px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 20px; border-left: 1px solid #e5e7eb;">
+          <div style="font-size: 9px; color: #6b7280; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Overall Confidence</div>
+          <div style="font-size: 42px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}<span style="font-size: 20px; font-weight: 600;">%</span></div>
+          <div style="margin-top: 6px; padding: 4px 12px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">${verdictLabel}</div>
         </div>
       </div>
-      <div style="text-align: right;">
-        <div style="font-family: monospace; font-weight: 600; font-size: 11px; color: #1a1a1a;">#${reportNumber}</div>
-        <div style="font-size: 9px; color: #6b7280; margin-top: 2px;">${reportDate}</div>
+      <div style="display: flex; justify-content: center; gap: 24px; margin-top: 8px; font-size: 9px; color: #6b7280;">
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #15803D; display: inline-block;"></span>0-39% Authentic</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #B45309; display: inline-block;"></span>40-69% Uncertain</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #B91C1C; display: inline-block;"></span>70-100% Suspicious</span>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 16px; margin-top: 6px; font-size: 9px; color: #6b7280; padding: 5px 0; border-top: 1px solid #f3f4f6;">
+        <span>Case: <span style="font-family: monospace; color: #374151;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] : caseData.id}</span></span>
+        <span style="color: #d1d5db;">|</span>
+        <span>${caseData.content_type} - ${formatBytes(caseData.file_size_bytes)}</span>
+        <span style="color: #d1d5db;">|</span>
+        <span>Engine: v${details?.project_info?.verify_version || '2.374'}</span>
       </div>
     </div>
 
-    <!-- 2. Confidence bar + case reference -->
-    <div style="margin-bottom: 14px;">
-      <div style="height: 5px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
-        <div style="height: 100%; width: ${confidencePercent}%; background: ${verdictColor}; border-radius: 3px;"></div>
-      </div>
-      <div style="display: flex; gap: 20px; font-size: 9px; color: #6b7280;">
-        <span>Case <span style="font-family: monospace; color: #374151;">${details?.project_info?.case_id ? details.project_info.case_id.split('-')[0] : caseData.id}</span></span>
-        <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
-        <span>Submitted ${formatDate(caseData.created_at)}</span>
-        <span>Engine v${details?.project_info?.verify_version || '2.374'}</span>
-      </div>
-    </div>
-
-    <!-- 3. Summary Cards (compact with icons) -->
-    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-      ${metrics.slice(0, 4).map((m) => `
-      <div style="flex: 1; padding: 10px 12px; background: ${metricBg(m.status)}; border: 1px solid ${metricBorder(m.status)}; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
-        ${iconSvgs[m.iconType]?.(metricColor(m.status)) || ''}
-        <div>
-          <div style="font-size: 9px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${m.label}</div>
-          <div style="font-size: 13px; font-weight: 700; color: ${metricColor(m.status)}; line-height: 1.2;">${m.value}</div>
-        </div>
-      </div>`).join('')}
+    <!-- 2. Analysis Summary (3 cards) -->
+    <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+      ${[
+        { label: 'Face Analysis', value: faceResult?.result === 'suspicious' ? ((faceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: faceResult?.result === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.face },
+        { label: 'Voice Analysis', value: voiceResult?.result?.toLowerCase() === 'suspicious' ? ((voiceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: voiceResult?.result?.toLowerCase() === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.voice },
+        { label: 'File Metadata', value: hasIntegrityData ? (integrityPassed ? 'Consistent' : 'Concerns') : hasMetadata ? 'Extracted' : 'Limited', status: hasIntegrityData ? (integrityPassed ? 'ok' : 'alert') : 'ok', icon: iconSvgs.file },
+      ].map((card) => {
+        const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
+        const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'
+        const cbd = card.status === 'alert' ? '#FECACA' : '#BBF7D0'
+        const checkIcon = card.status === 'ok'
+          ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" stroke-width="1"/><path d="M5 8l2 2 4-4" stroke="#15803D" stroke-width="1.5" fill="none"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/></svg>'
+        return `<div style="flex: 1; padding: 12px 14px; background: ${cb}; border: 1px solid ${cbd}; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+          ${card.icon(cc)}
+          <div style="flex: 1;">
+            <div style="font-size: 9px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${card.label}</div>
+            <div style="font-size: 15px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>
+          </div>
+          ${checkIcon}
+        </div>`
+      }).join('')}
     </div>
 
     <!-- 4. Frame-by-Frame Analysis -->
@@ -387,7 +407,7 @@ function generateReportHTML(caseData: Case): string {
     <!-- 6. Two-column: Detailed Findings + Extracted Metadata -->
     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
       <div style="flex: 1; padding: 12px 14px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">${isSuspicious ? 'Detailed Findings' : 'Analysis Summary'}</div>
+        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">Analysis Details</div>
         ${isSuspicious && regionDescs.length > 0 ? regionDescs.map(r => `
         <div style="display: flex; gap: 7px; align-items: flex-start; margin-bottom: 6px;">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-top: 2px; flex-shrink: 0;"><path d="M6 1L1 10h10L6 1z" fill="#FBBF24" stroke="#D97706" stroke-width="0.8"/><line x1="6" y1="4.5" x2="6" y2="7" stroke="#92400E" stroke-width="1"/><circle cx="6" cy="8.2" r="0.5" fill="#92400E"/></svg>
@@ -420,7 +440,7 @@ function generateReportHTML(caseData: Case): string {
 
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 1 of 1</span>
+      <span>Page 1 of 3</span>
     </div>
   </div>
 </body>
