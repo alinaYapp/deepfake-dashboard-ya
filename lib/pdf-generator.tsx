@@ -403,30 +403,50 @@ function generateReportHTML(caseData: Case): string {
     </div>
     ` : ''}
 
-    <!-- 6. Two-column: Detailed Findings + Extracted Metadata -->
-    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-      <div style="flex: 1; padding: 12px 14px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">Analysis Details</div>
-        ${isSuspicious && regionDescs.length > 0 ? regionDescs.map(r => `
-        <div style="display: flex; gap: 7px; align-items: flex-start; margin-bottom: 6px;">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-top: 2px; flex-shrink: 0;"><path d="M6 1L1 10h10L6 1z" fill="#FBBF24" stroke="#D97706" stroke-width="0.8"/><line x1="6" y1="4.5" x2="6" y2="7" stroke="#92400E" stroke-width="1"/><circle cx="6" cy="8.2" r="0.5" fill="#92400E"/></svg>
-          <div>
-            <div style="font-size: 10px; font-weight: 600; color: #1a1a1a;">${r.region}</div>
-            <div style="font-size: 9px; color: #4b5563; line-height: 1.4;">${r.detail}</div>
-          </div>
-        </div>`).join('') : `<div style="font-size: 9px; color: #6b7280; line-height: 1.6;">No indicators of manipulation were observed. Frame analysis did not detect regions exhibiting patterns suggestive of synthetic alteration.</div>`}
+    <!-- 6. Forensic Flags + Metadata -->
+    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+      <div style="flex: 1.4; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
+        <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; padding: 5px 10px; background: #f8fafc; border-bottom: 1px solid #e5e7eb;">Forensic Flags</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
+          <thead><tr style="background: #1e3a5f;">
+            <th style="padding: 4px 6px; color: #fff; font-weight: 600; text-align: left; width: 14%; border-right: 1px solid #2d4a6f;">Severity</th>
+            <th style="padding: 4px 6px; color: #fff; font-weight: 600; text-align: left; width: 46%; border-right: 1px solid #2d4a6f;">Name</th>
+            <th style="padding: 4px 6px; color: #fff; font-weight: 600; text-align: left; width: 20%; border-right: 1px solid #2d4a6f;">Type</th>
+            <th style="padding: 4px 6px; color: #fff; font-weight: 600; text-align: left; width: 20%;">Found In</th>
+          </tr></thead>
+          <tbody>
+            <tr style="background: #FEF2F2; border-bottom: 1px solid #FECACA;">
+              <td style="padding: 5px 6px; vertical-align: top; border-right: 1px solid #f3e8e8;"><div style="display: flex; align-items: center; gap: 3px;"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg><span style="color: #B91C1C; font-weight: 700;">Critical</span></div></td>
+              <td style="padding: 5px 6px; color: #7F1D1D; line-height: 1.35; vertical-align: top; border-right: 1px solid #f3e8e8;"><span style="font-weight: 600;">Signature Consistent With:</span> Deepbrain AI, Deepfakes Web, Faceswap, Hedra, HeyGen, Reface, Roop, Runway, Synthesia</td>
+              <td style="padding: 5px 6px; color: #991B1B; font-weight: 500; vertical-align: top; border-right: 1px solid #f3e8e8;">AI Generator</td>
+              <td style="padding: 5px 6px; color: #991B1B; font-weight: 500; vertical-align: top;">File Structural Signature</td>
+            </tr>
+            <tr style="background: #FFFBEB; border-bottom: 1px solid #FDE68A;">
+              <td style="padding: 5px 6px; vertical-align: top; border-right: 1px solid #f5f0dc;"><div style="display: flex; align-items: center; gap: 3px;"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg><span style="color: #92400E; font-weight: 700;">Suspect</span></div></td>
+              <td style="padding: 5px 6px; color: #78350F; line-height: 1.35; vertical-align: top; border-right: 1px solid #f5f0dc;"><span style="font-weight: 600;">Signature Consistent With:</span> Any Video Converter, Bluesky, FFmpeg, Shutter Encoder</td>
+              <td style="padding: 5px 6px; color: #92400E; font-weight: 500; vertical-align: top; border-right: 1px solid #f5f0dc;">Encoder, Social Platform</td>
+              <td style="padding: 5px 6px; color: #92400E; font-weight: 500; vertical-align: top;">File Structural Signature</td>
+            </tr>
+            <tr style="background: #FFFBEB;">
+              <td style="padding: 5px 6px; vertical-align: top; border-right: 1px solid #f5f0dc;"><div style="display: flex; align-items: center; gap: 3px;"><svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg><span style="color: #92400E; font-weight: 700;">Suspect</span></div></td>
+              <td style="padding: 5px 6px; color: #78350F; line-height: 1.35; vertical-align: top; border-right: 1px solid #f5f0dc;">Bluesky Media Downloader (Google Chrome Extension)</td>
+              <td style="padding: 5px 6px; color: #92400E; font-weight: 500; vertical-align: top; border-right: 1px solid #f5f0dc;">Social Platform</td>
+              <td style="padding: 5px 6px; color: #92400E; font-weight: 500; vertical-align: top;">File Structural Signature</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div style="flex: 1; padding: 12px 14px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">Extracted Metadata</div>
+      <div style="flex: 0.6; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <div style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;">Extracted Metadata</div>
         ${metaItems.length > 0 ? metaItems.slice(0, 8).map(m => `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 9px; color: #6b7280;">${m.label}</span>
-          <span style="font-size: 9px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
+          <span style="font-size: 8px; color: #6b7280;">${m.label}</span>
+          <span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
         </div>`).join('') : '<div style="font-size: 9px; color: #6b7280;">No metadata available</div>'}
         ${hasIntegrityData ? `
-        <div style="display: flex; align-items: center; gap: 5px; margin-top: 8px; padding: 4px 8px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
-          <div style="width: 6px; height: 6px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
-          <span style="font-size: 8.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
+        <div style="display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
+          <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
+          <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
         </div>` : ''}
       </div>
     </div>

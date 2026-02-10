@@ -298,36 +298,71 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
         </div>
       )}
 
-      {/* ── SECTION C: Two-column details ── */}
+      {/* ── SECTION C: Forensic Flags + Metadata ── */}
       <div style={{ display: "flex", gap: "8px" }}>
-        <div style={{ flex: 1, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
-          <div style={{ fontSize: "9px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "5px" }}>
-            Analysis Details
+        {/* LEFT: Forensic Flags */}
+        <div style={{ flex: "1.4", border: "1px solid #e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
+          <div style={{ fontSize: "9px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px", padding: "5px 10px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+            Forensic Flags
           </div>
-          {isSuspicious && regionDescs.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {regionDescs.map((r, i) => (
-                <div key={i} style={{ display: "flex", gap: "7px", alignItems: "flex-start" }}>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ marginTop: "2px", flexShrink: 0 }}>
-                    <path d="M6 1L1 10h10L6 1z" fill="#FBBF24" stroke="#D97706" strokeWidth="0.8" />
-                    <line x1="6" y1="4.5" x2="6" y2="7" stroke="#92400E" strokeWidth="1" />
-                    <circle cx="6" cy="8.2" r="0.5" fill="#92400E" />
-                  </svg>
-                  <div>
-                    <div style={{ fontSize: "10px", fontWeight: 600, color: "#1a1a1a" }}>{r.region}</div>
-                    <div style={{ fontSize: "9px", color: "#4b5563", lineHeight: "1.4" }}>{r.detail}</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8px" }}>
+            <thead>
+              <tr style={{ background: "#1e3a5f" }}>
+                <th style={{ padding: "4px 6px", color: "#ffffff", fontWeight: 600, textAlign: "left", width: "14%", borderRight: "1px solid #2d4a6f" }}>Severity</th>
+                <th style={{ padding: "4px 6px", color: "#ffffff", fontWeight: 600, textAlign: "left", width: "46%", borderRight: "1px solid #2d4a6f" }}>Name</th>
+                <th style={{ padding: "4px 6px", color: "#ffffff", fontWeight: 600, textAlign: "left", width: "20%", borderRight: "1px solid #2d4a6f" }}>Type</th>
+                <th style={{ padding: "4px 6px", color: "#ffffff", fontWeight: 600, textAlign: "left", width: "20%" }}>Found In</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Critical row */}
+              <tr style={{ background: "#FEF2F2", borderBottom: "1px solid #FECACA" }}>
+                <td style={{ padding: "5px 6px", verticalAlign: "top", borderRight: "1px solid #f3e8e8" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#DC2626" /><text x="7" y="10.5" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700">i</text></svg>
+                    <span style={{ color: "#B91C1C", fontWeight: 700, fontSize: "8px" }}>Critical</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: "9px", color: "#6b7280", lineHeight: "1.6" }}>
-              No indicators of manipulation were observed. Frame analysis did not detect regions exhibiting patterns suggestive of synthetic alteration.
-            </div>
-          )}
+                </td>
+                <td style={{ padding: "5px 6px", color: "#7F1D1D", lineHeight: "1.35", verticalAlign: "top", borderRight: "1px solid #f3e8e8" }}>
+                  <span style={{ fontWeight: 600 }}>Signature Consistent With:</span> Deepbrain AI, Deepfakes Web, Faceswap, Hedra, HeyGen, Reface, Roop, Runway, Synthesia
+                </td>
+                <td style={{ padding: "5px 6px", color: "#991B1B", fontWeight: 500, verticalAlign: "top", borderRight: "1px solid #f3e8e8" }}>AI Generator</td>
+                <td style={{ padding: "5px 6px", color: "#991B1B", fontWeight: 500, verticalAlign: "top" }}>File Structural Signature</td>
+              </tr>
+              {/* Suspect row 1 */}
+              <tr style={{ background: "#FFFBEB", borderBottom: "1px solid #FDE68A" }}>
+                <td style={{ padding: "5px 6px", verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" strokeWidth="0.5" /><text x="7" y="10.5" textAnchor="middle" fill="#78350F" fontSize="8" fontWeight="700">!</text></svg>
+                    <span style={{ color: "#92400E", fontWeight: 700, fontSize: "8px" }}>Suspect</span>
+                  </div>
+                </td>
+                <td style={{ padding: "5px 6px", color: "#78350F", lineHeight: "1.35", verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>
+                  <span style={{ fontWeight: 600 }}>Signature Consistent With:</span> Any Video Converter, Bluesky, FFmpeg, Shutter Encoder
+                </td>
+                <td style={{ padding: "5px 6px", color: "#92400E", fontWeight: 500, verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>Encoder, Social Platform</td>
+                <td style={{ padding: "5px 6px", color: "#92400E", fontWeight: 500, verticalAlign: "top" }}>File Structural Signature</td>
+              </tr>
+              {/* Suspect row 2 */}
+              <tr style={{ background: "#FFFBEB" }}>
+                <td style={{ padding: "5px 6px", verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" strokeWidth="0.5" /><text x="7" y="10.5" textAnchor="middle" fill="#78350F" fontSize="8" fontWeight="700">!</text></svg>
+                    <span style={{ color: "#92400E", fontWeight: 700, fontSize: "8px" }}>Suspect</span>
+                  </div>
+                </td>
+                <td style={{ padding: "5px 6px", color: "#78350F", lineHeight: "1.35", verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>
+                  Bluesky Media Downloader (Google Chrome Extension)
+                </td>
+                <td style={{ padding: "5px 6px", color: "#92400E", fontWeight: 500, verticalAlign: "top", borderRight: "1px solid #f5f0dc" }}>Social Platform</td>
+                <td style={{ padding: "5px 6px", color: "#92400E", fontWeight: 500, verticalAlign: "top" }}>File Structural Signature</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div style={{ flex: 1, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
+        {/* RIGHT: Extracted Metadata */}
+        <div style={{ flex: "0.6", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
           <div style={{ fontSize: "9px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "5px" }}>
             Extracted Metadata
           </div>
@@ -335,8 +370,8 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {metaItems.slice(0, 8).map((m, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "9px", color: "#6b7280" }}>{m.label}</span>
-                  <span style={{ fontSize: "9px", color: "#374151", fontWeight: 500, fontFamily: "monospace" }}>{m.value}</span>
+                  <span style={{ fontSize: "8px", color: "#6b7280" }}>{m.label}</span>
+                  <span style={{ fontSize: "8px", color: "#374151", fontWeight: 500, fontFamily: "monospace" }}>{m.value}</span>
                 </div>
               ))}
             </div>
@@ -346,12 +381,12 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
           {hasIntegrityData && (
             <div style={{
               display: "flex", alignItems: "center", gap: "5px",
-              marginTop: "8px", padding: "4px 8px", borderRadius: "4px",
+              marginTop: "6px", padding: "4px 6px", borderRadius: "4px",
               background: integrityPassed ? "#F0FDF4" : "#FEF2F2",
               border: `1px solid ${integrityPassed ? "#BBF7D0" : "#FECACA"}`,
             }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: integrityPassed ? "#22C55E" : "#EF4444" }} />
-              <span style={{ fontSize: "8.5px", fontWeight: 500, color: integrityPassed ? "#15803D" : "#B91C1C" }}>
+              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: integrityPassed ? "#22C55E" : "#EF4444" }} />
+              <span style={{ fontSize: "7.5px", fontWeight: 500, color: integrityPassed ? "#15803D" : "#B91C1C" }}>
                 File integrity: {integrityPassed ? "All structural checks passed" : "Integrity concerns noted"}
               </span>
             </div>
