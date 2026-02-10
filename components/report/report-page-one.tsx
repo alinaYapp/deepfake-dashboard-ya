@@ -91,11 +91,10 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
         {/* Main header block: metadata table left, score right */}
         <div style={{
-          display: "flex", gap: "20px", alignItems: "stretch",
-          border: "1px solid #e5e7eb", borderRadius: "10px", overflow: "hidden",
+          display: "flex", border: "1px solid #e5e7eb", borderRadius: "10px", overflow: "hidden",
         }}>
           {/* Left: metadata table */}
-          <div style={{ flex: "1 1 0", padding: "14px 18px" }}>
+          <div style={{ flex: 1, padding: "16px 24px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
               <tbody>
                 {[
@@ -103,8 +102,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
                     label: "Report Status",
                     content: (
                       <span style={{
-                        display: "inline-flex", alignItems: "center", gap: "5px",
-                        padding: "3px 10px", borderRadius: "4px", fontWeight: 600, fontSize: "10px",
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                        padding: "4px 12px", borderRadius: "5px", fontWeight: 600, fontSize: "10px",
                         background: isSuspicious ? "#FEE2E2" : isUncertain ? "#FEF3C7" : "#DCFCE7",
                         color: verdictColor,
                       }}>
@@ -130,10 +129,17 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
                   { label: "Report ID", content: <span style={{ color: "#374151", fontWeight: 600, fontFamily: "monospace", fontSize: "10px" }}>#{reportNumber}</span> },
                 ].map((row, i) => (
                   <tr key={i}>
-                    <td style={{ padding: "6px 0", color: "#6b7280", fontWeight: 500, width: "130px", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none" }}>
+                    <td style={{
+                      padding: "9px 12px 9px 0", color: "#6b7280", fontWeight: 500,
+                      width: "140px", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none",
+                      verticalAlign: "middle",
+                    }}>
                       {row.label}
                     </td>
-                    <td style={{ padding: "6px 0", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none" }}>
+                    <td style={{
+                      padding: "9px 0", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none",
+                      verticalAlign: "middle",
+                    }}>
                       {row.content}
                     </td>
                   </tr>
@@ -144,20 +150,20 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
           {/* Right: large score */}
           <div style={{
-            flex: "0 0 200px",
+            flex: "0 0 210px",
             background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            padding: "20px 20px", borderLeft: "1px solid #e5e7eb",
+            padding: "24px 24px", borderLeft: "1px solid #e5e7eb",
           }}>
-            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
+            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
               Overall Confidence
             </div>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center" }}>
-              <span style={{ fontSize: "44px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>{confidencePercent}</span>
-              <span style={{ fontSize: "22px", fontWeight: 600, color: verdictColor, lineHeight: 1, marginLeft: "1px" }}>%</span>
+              <span style={{ fontSize: "46px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>{confidencePercent}</span>
+              <span style={{ fontSize: "22px", fontWeight: 600, color: verdictColor, lineHeight: 1, marginLeft: "2px" }}>%</span>
             </div>
             <div style={{
-              marginTop: "10px", padding: "5px 18px", borderRadius: "5px",
+              marginTop: "12px", padding: "6px 20px", borderRadius: "5px",
               background: verdictColor, color: "#ffffff",
               fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em",
               textTransform: "uppercase", textAlign: "center",
@@ -169,28 +175,28 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
         {/* Risk level legend */}
         <div style={{
-          display: "flex", justifyContent: "center", gap: "24px",
-          marginTop: "8px", fontSize: "9px", color: "#6b7280",
+          display: "flex", justifyContent: "center", gap: "32px",
+          marginTop: "10px", fontSize: "9px", color: "#6b7280",
         }}>
-          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#15803D", display: "inline-block" }} />
+          <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#15803D", display: "inline-block", flexShrink: 0 }} />
             <span>0-39% Authentic</span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#B45309", display: "inline-block" }} />
+          <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#B45309", display: "inline-block", flexShrink: 0 }} />
             <span>40-69% Uncertain</span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#B91C1C", display: "inline-block" }} />
+          <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#B91C1C", display: "inline-block", flexShrink: 0 }} />
             <span>70-100% Suspicious</span>
           </span>
         </div>
 
         {/* File info bar */}
         <div style={{
-          display: "flex", justifyContent: "center", gap: "16px",
-          marginTop: "6px", fontSize: "9px", color: "#6b7280",
-          padding: "5px 0", borderTop: "1px solid #f3f4f6",
+          display: "flex", justifyContent: "center", gap: "20px",
+          marginTop: "10px", fontSize: "9px", color: "#6b7280",
+          padding: "7px 0", borderTop: "1px solid #f3f4f6",
         }}>
           <span>Case: <span style={{ fontFamily: "monospace", color: "#374151" }}>{details?.project_info?.case_id ? details.project_info.case_id.split("-")[0] : caseData.id}</span></span>
           <span style={{ color: "#d1d5db" }}>|</span>
