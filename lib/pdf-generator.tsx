@@ -230,10 +230,10 @@ function generateReportHTML(caseData: Case): string {
             <tr><td style="padding: 6px 0; color: #6b7280; font-weight: 500;">Report ID</td><td style="padding: 6px 0; color: #374151; font-weight: 600; font-family: monospace; font-size: 10px;">#${reportNumber}</td></tr>
           </table>
         </div>
-        <div style="flex: 0 0 200px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 20px; border-left: 1px solid #e5e7eb; text-align: center;">
-          <div style="font-size: 9px; color: #6b7280; font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Overall Confidence</div>
-          <div style="font-size: 42px; font-weight: 700; color: ${verdictColor}; line-height: 1; text-align: center; width: 100%;">${confidencePercent}<span style="font-size: 20px; font-weight: 600;">%</span></div>
-          <div style="margin-top: 8px; padding: 5px 14px; border-radius: 5px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-align: center;">${verdictLabel}</div>
+        <div style="flex: 0 0 200px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 20px; border-left: 1px solid #e5e7eb;">
+          <div style="font-size: 9px; color: #6b7280; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Overall Confidence</div>
+          <div style="display: flex; align-items: baseline; justify-content: center;"><span style="font-size: 44px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}</span><span style="font-size: 22px; font-weight: 600; color: ${verdictColor}; line-height: 1; margin-left: 1px;">%</span></div>
+          <div style="margin-top: 10px; padding: 5px 18px; border-radius: 5px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-align: center;">${verdictLabel}</div>
         </div>
       </div>
       <div style="display: flex; justify-content: center; gap: 24px; margin-top: 8px; font-size: 9px; color: #6b7280;">

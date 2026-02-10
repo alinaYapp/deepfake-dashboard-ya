@@ -147,19 +147,19 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             flex: "0 0 200px",
             background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            padding: "16px 20px", borderLeft: "1px solid #e5e7eb",
-            textAlign: "center",
+            padding: "20px 20px", borderLeft: "1px solid #e5e7eb",
           }}>
-            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "center" }}>
               Overall Confidence
             </div>
-            <div style={{ fontSize: "42px", fontWeight: 700, color: verdictColor, lineHeight: 1, textAlign: "center", width: "100%" }}>
-              {confidencePercent}<span style={{ fontSize: "20px", fontWeight: 600 }}>%</span>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center" }}>
+              <span style={{ fontSize: "44px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>{confidencePercent}</span>
+              <span style={{ fontSize: "22px", fontWeight: 600, color: verdictColor, lineHeight: 1, marginLeft: "1px" }}>%</span>
             </div>
             <div style={{
-              marginTop: "8px", padding: "5px 14px", borderRadius: "5px",
+              marginTop: "10px", padding: "5px 18px", borderRadius: "5px",
               background: verdictColor, color: "#ffffff",
-              fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em",
+              fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em",
               textTransform: "uppercase", textAlign: "center",
             }}>
               {verdictLabel}
