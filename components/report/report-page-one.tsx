@@ -148,18 +148,19 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             padding: "16px 20px", borderLeft: "1px solid #e5e7eb",
+            textAlign: "center",
           }}>
-            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <div style={{ fontSize: "9px", color: "#6b7280", fontWeight: 500, marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Overall Confidence
             </div>
-            <div style={{ fontSize: "42px", fontWeight: 700, color: verdictColor, lineHeight: 1 }}>
+            <div style={{ fontSize: "42px", fontWeight: 700, color: verdictColor, lineHeight: 1, textAlign: "center", width: "100%" }}>
               {confidencePercent}<span style={{ fontSize: "20px", fontWeight: 600 }}>%</span>
             </div>
             <div style={{
-              marginTop: "6px", padding: "4px 12px", borderRadius: "4px",
+              marginTop: "8px", padding: "5px 14px", borderRadius: "5px",
               background: verdictColor, color: "#ffffff",
               fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em",
-              textTransform: "uppercase",
+              textTransform: "uppercase", textAlign: "center",
             }}>
               {verdictLabel}
             </div>
