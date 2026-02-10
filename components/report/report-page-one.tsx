@@ -163,12 +163,16 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             </div>
             <div style={{
               marginTop: "20px",
-              padding: "10px 28px", borderRadius: "6px",
+              height: "38px",
+              padding: "0px 28px",
+              borderRadius: "6px",
               background: verdictColor, color: "#ffffff",
               fontSize: "14px", fontWeight: 600, letterSpacing: "0.5px",
               textTransform: "uppercase",
               display: "flex", alignItems: "center", justifyContent: "center",
-              textAlign: "center", lineHeight: "1",
+              textAlign: "center",
+              lineHeight: "38px",
+              boxSizing: "border-box",
             }}>
               {verdictLabel}
             </div>
