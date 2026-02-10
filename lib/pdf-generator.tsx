@@ -282,9 +282,7 @@ function generateReportHTML(caseData: Case): string {
           <span style="font-size: 9px; color: #6b7280;">Max: <span style="color: #B91C1C; font-weight: 700; font-family: monospace;">${(maxFrameScore * 100).toFixed(1)}%</span></span>
           <span style="font-size: 9px; color: #6b7280;">Avg: <span style="color: #EA580C; font-weight: 700; font-family: monospace;">${(avgFrameScore * 100).toFixed(1)}%</span></span>
           ` : ''}
-          <span style="font-size: 8px; font-weight: 600; padding: 3px 10px; border-radius: 4px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; background: ${isSuspicious ? '#FEF2F2' : '#F0FDF4'}; border: 1px solid ${isSuspicious ? '#FECACA' : '#BBF7D0'};">
-            ${isAudio ? (isSuspicious ? 'Anomalous patterns' : 'No anomalies') : (heatZones.length > 0 ? `${heatZones.length} region${heatZones.length !== 1 ? 's' : ''} flagged` : 'No regions of concern')}
-          </span>
+  
         </div>
       </div>
       <div style="background: #f9fafb; padding: 8px 14px;">
@@ -381,7 +379,6 @@ function generateReportHTML(caseData: Case): string {
             <rect width="200" height="150" fill="url(#fBgHM)"/>
             <ellipse cx="100" cy="56" rx="28" ry="32" fill="#4b5563"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#4b5563"/>
             <ellipse cx="100" cy="60" rx="48" ry="52" fill="url(#heatHM)"/>
-            ${heatZones.map(z => `<ellipse cx="${(z.x + z.w / 2) * 2}" cy="${(z.y + z.h / 2) * 1.5}" rx="${(z.w / 2) * 2}" ry="${(z.h / 2) * 1.5}" fill="none" stroke="rgba(220,38,38,0.7)" stroke-width="1.5" stroke-dasharray="4,3"/>`).join('')}
           </svg>
           <div style="position: absolute; top: 5px; left: 5px; background: rgba(220,38,38,0.9); color: #fff; font-size: 7px; font-weight: 700; padding: 2px 7px; border-radius: 3px; text-transform: uppercase;">Frame 42 - Highest Score</div>
         </div>

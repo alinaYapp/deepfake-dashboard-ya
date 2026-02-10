@@ -91,12 +91,7 @@ function FrameSvg({ width, height, showHeat, zones }: { width: number; height: n
       <line x1={vw / 3} y1="0" x2={vw / 3} y2={vh} stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
       <line x1={(vw * 2) / 3} y1="0" x2={(vw * 2) / 3} y2={vh} stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
       {showHeat && (
-        <>
-          <ellipse cx={vw / 2} cy="60" rx="48" ry="52" fill="url(#heatH)" />
-          {zones?.map((z) => (
-            <ellipse key={z.id} cx={(z.x + z.width / 2) * 2} cy={(z.y + z.height / 2) * 1.5} rx={(z.width / 2) * 2} ry={(z.height / 2) * 1.5} fill="none" stroke={z.intensity === "high" ? "rgba(220,38,38,0.7)" : z.intensity === "medium" ? "rgba(234,88,12,0.6)" : "rgba(250,204,21,0.5)"} strokeWidth="1.5" strokeDasharray="4,3" />
-          ))}
-        </>
+        <ellipse cx={vw / 2} cy="60" rx="48" ry="52" fill="url(#heatH)" />
       )}
     </svg>
   )
@@ -175,16 +170,6 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
                 <span style={{ color: "#6b7280" }}>Avg: <span style={{ color: "#EA580C", fontWeight: 700, fontFamily: "monospace" }}>{(avgScore * 100).toFixed(1)}%</span></span>
               </div>
             )}
-            <span style={{
-              fontSize: "8px", fontWeight: 600, padding: "3px 10px", borderRadius: "4px",
-              color: isSuspicious ? "#B91C1C" : "#15803D",
-              background: isSuspicious ? "#FEF2F2" : "#F0FDF4",
-              border: `1px solid ${isSuspicious ? "#FECACA" : "#BBF7D0"}`,
-            }}>
-              {isAudio
-                ? (isSuspicious ? "Anomalous patterns" : "No anomalies")
-                : (zones.length > 0 ? `${zones.length} region${zones.length !== 1 ? "s" : ""} flagged` : "No regions of concern")}
-            </span>
           </div>
         </div>
 
