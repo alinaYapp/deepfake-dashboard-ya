@@ -161,10 +161,10 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
   const hasIntegrityData = !!details?.structural_consistency
 
   return (
-    <div style={{ marginBottom: "12px" }}>
+    <div style={{ marginBottom: "6px" }}>
       {/* ── SECTION A: Frame-by-Frame Analysis ── */}
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", marginBottom: "10px" }}>
-        <div style={{ padding: "7px 14px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", marginBottom: "6px" }}>
+        <div style={{ padding: "5px 12px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: "10px", fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             {isAudio ? "Audio Analysis" : "Frame-by-Frame Analysis"}
           </span>
@@ -188,40 +188,40 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
           </div>
         </div>
 
-        <div style={{ background: "#f9fafb", padding: "14px 20px" }}>
+        <div style={{ background: "#f9fafb", padding: "8px 14px" }}>
           {isAudio ? (
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <WaveformSvg isSuspicious={isSuspicious} width={640} height={130} />
+              <WaveformSvg isSuspicious={isSuspicious} width={640} height={100} />
             </div>
           ) : isVideo && isSuspicious && topFrames.length > 0 ? (
-            <div style={{ display: "flex", gap: "14px", justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
               {topFrames.map((frame, i) => (
-                <div key={i} style={{ flex: 1, maxWidth: "225px" }}>
+                <div key={i} style={{ flex: 1, maxWidth: "210px" }}>
                   <div style={{
-                    position: "relative", borderRadius: "6px", overflow: "hidden",
-                    border: `${frame.isHighest ? "2.5px" : "1.5px"} solid ${frame.isHighest ? "#DC2626" : "#d1d5db"}`,
-                    boxShadow: frame.isHighest ? "0 0 12px rgba(220,38,38,0.2)" : "none",
+                    position: "relative", borderRadius: "5px", overflow: "hidden",
+                    border: `${frame.isHighest ? "2px" : "1px"} solid ${frame.isHighest ? "#DC2626" : "#d1d5db"}`,
+                    boxShadow: frame.isHighest ? "0 0 8px rgba(220,38,38,0.2)" : "none",
                   }}>
-                    <FrameSvg width={225} height={168} showHeat={frame.isHighest && isEnterprise} zones={frame.isHighest ? zones : undefined} />
+                    <FrameSvg width={210} height={130} showHeat={frame.isHighest && isEnterprise} zones={frame.isHighest ? zones : undefined} />
                     <div style={{
-                      position: "absolute", top: "6px", right: "6px",
+                      position: "absolute", top: "4px", right: "4px",
                       background: frameScoreColor(frame.score), color: "#fff",
-                      fontSize: "12px", fontWeight: 700, padding: "3px 9px", borderRadius: "4px",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                      fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "3px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                     }}>
                       {(frame.score * 100).toFixed(1)}%
                     </div>
                     {frame.isHighest && (
                       <div style={{
-                        position: "absolute", top: "6px", left: "6px",
+                        position: "absolute", top: "4px", left: "4px",
                         background: "#DC2626", color: "#fff",
-                        fontSize: "7px", fontWeight: 700, padding: "2px 6px", borderRadius: "3px",
+                        fontSize: "7px", fontWeight: 700, padding: "2px 5px", borderRadius: "3px",
                         textTransform: "uppercase", letterSpacing: "0.5px",
                       }}>Highest</div>
                     )}
                   </div>
-                  <div style={{ textAlign: "center", marginTop: "5px" }}>
-                    <div style={{ fontSize: "10px", fontWeight: 600, color: "#374151" }}>
+                  <div style={{ textAlign: "center", marginTop: "3px" }}>
+                    <div style={{ fontSize: "9px", fontWeight: 600, color: "#374151" }}>
                       Frame {frame.index} &mdash; {frame.timestamp}
                     </div>
                   </div>
@@ -229,14 +229,14 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
               ))}
             </div>
           ) : (
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
               <div style={{ textAlign: "center" }}>
-                <FrameSvg width={220} height={165} />
-                <div style={{ fontSize: "9px", color: "#6b7280", marginTop: "6px", fontWeight: 500 }}>Source Frame</div>
+                <FrameSvg width={200} height={130} />
+                <div style={{ fontSize: "8px", color: "#6b7280", marginTop: "3px", fontWeight: 500 }}>Source Frame</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <FrameSvg width={220} height={165} showHeat={isSuspicious && isEnterprise} zones={zones} />
-                <div style={{ fontSize: "9px", color: isSuspicious ? "#B91C1C" : "#15803D", marginTop: "6px", fontWeight: 500 }}>
+                <FrameSvg width={200} height={130} showHeat={isSuspicious && isEnterprise} zones={zones} />
+                <div style={{ fontSize: "8px", color: isSuspicious ? "#B91C1C" : "#15803D", marginTop: "3px", fontWeight: 500 }}>
                   {isSuspicious ? "Regions of Interest" : "Analysis Overlay"}
                 </div>
               </div>
@@ -247,53 +247,51 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
 
       {/* ── SECTION B: Manipulation Zones (full-width, only when suspicious + not audio) ── */}
       {isSuspicious && !isAudio && (
-        <div style={{ border: "1.5px solid #FECACA", borderRadius: "8px", overflow: "hidden", marginBottom: "10px", background: "#FEF2F2" }}>
-          <div style={{ padding: "7px 14px", background: "#FEE2E2", borderBottom: "1px solid #FECACA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "10px", fontWeight: 700, color: "#991B1B", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ border: "1.5px solid #FECACA", borderRadius: "6px", overflow: "hidden", marginBottom: "6px", background: "#FEF2F2" }}>
+          <div style={{ padding: "4px 12px", background: "#FEE2E2", borderBottom: "1px solid #FECACA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "9px", fontWeight: 700, color: "#991B1B", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Manipulation Zones Detected
             </span>
-            <div style={{ display: "flex", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "10px" }}>
               {[
                 { label: "High", color: "#DC2626", bg: "rgba(220,38,38,0.2)" },
                 { label: "Medium", color: "#EA580C", bg: "rgba(234,88,12,0.15)" },
                 { label: "Low", color: "#CA8A04", bg: "rgba(202,138,4,0.15)" },
               ].map((l) => (
-                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: l.bg, border: `2px solid ${l.color}` }} />
-                  <span style={{ fontSize: "8px", color: l.color, fontWeight: 600 }}>{l.label}</span>
+                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: l.bg, border: `1.5px solid ${l.color}` }} />
+                  <span style={{ fontSize: "7px", color: l.color, fontWeight: 600 }}>{l.label}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", padding: "12px 16px", gap: "16px", alignItems: "center" }}>
-            {/* Left: enlarged heat map of highest frame */}
-            <div style={{ flex: "0 0 280px" }}>
-              <div style={{ position: "relative", borderRadius: "6px", overflow: "hidden", border: "2px solid #DC2626" }}>
-                <FrameSvg width={280} height={210} showHeat={true} zones={zones} />
+          <div style={{ display: "flex", padding: "8px 12px", gap: "12px", alignItems: "center" }}>
+            <div style={{ flex: "0 0 220px" }}>
+              <div style={{ position: "relative", borderRadius: "5px", overflow: "hidden", border: "2px solid #DC2626" }}>
+                <FrameSvg width={220} height={165} showHeat={true} zones={zones} />
                 <div style={{
-                  position: "absolute", top: "6px", left: "6px", background: "rgba(220,38,38,0.9)", color: "#fff",
-                  fontSize: "8px", fontWeight: 700, padding: "3px 8px", borderRadius: "3px", textTransform: "uppercase",
+                  position: "absolute", top: "4px", left: "4px", background: "rgba(220,38,38,0.9)", color: "#fff",
+                  fontSize: "7px", fontWeight: 700, padding: "2px 6px", borderRadius: "3px", textTransform: "uppercase",
                 }}>Frame 42 - Highest Score</div>
               </div>
             </div>
-            {/* Right: zone descriptions */}
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: "#991B1B", marginBottom: "8px" }}>
+              <div style={{ fontSize: "9px", fontWeight: 600, color: "#991B1B", marginBottom: "5px" }}>
                 {zones.length} anomalous region{zones.length !== 1 ? "s" : ""} identified in highest-scoring frame
               </div>
               {zones.map((z, i) => (
-                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px", padding: "5px 8px", background: "#FEE2E2", borderRadius: "4px" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: z.intensity === "high" ? "#DC2626" : z.intensity === "medium" ? "#EA580C" : "#CA8A04", flexShrink: 0 }} />
+                <div key={i} style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", padding: "4px 6px", background: "#FEE2E2", borderRadius: "4px" }}>
+                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: z.intensity === "high" ? "#DC2626" : z.intensity === "medium" ? "#EA580C" : "#CA8A04", flexShrink: 0 }} />
                   <div>
-                    <span style={{ fontSize: "10px", fontWeight: 600, color: "#991B1B" }}>{z.label}</span>
-                    <span style={{ fontSize: "9px", color: "#7F1D1D", marginLeft: "6px" }}>
+                    <span style={{ fontSize: "9px", fontWeight: 600, color: "#991B1B" }}>{z.label}</span>
+                    <span style={{ fontSize: "8px", color: "#7F1D1D", marginLeft: "5px" }}>
                       {z.intensity.charAt(0).toUpperCase() + z.intensity.slice(1)} confidence &middot; ({z.x},{z.y}) {z.width}x{z.height}px
                     </span>
                   </div>
                 </div>
               ))}
-              <div style={{ fontSize: "8px", color: "#9ca3af", marginTop: "8px", fontStyle: "italic", lineHeight: "1.5" }}>
-                Highlighted regions indicate areas where the analysis model observed patterns potentially inconsistent with unaltered media. This is a statistical visualization, not raw sensor data.
+              <div style={{ fontSize: "7px", color: "#9ca3af", marginTop: "4px", fontStyle: "italic", lineHeight: "1.4" }}>
+                Highlighted regions indicate areas where the analysis model observed patterns potentially inconsistent with unaltered media.
               </div>
             </div>
           </div>
@@ -301,10 +299,9 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
       )}
 
       {/* ── SECTION C: Two-column details ── */}
-      <div style={{ display: "flex", gap: "10px" }}>
-        {/* LEFT: Regions of Interest / Findings */}
-        <div style={{ flex: 1, padding: "12px 14px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "8px" }}>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ flex: 1, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
+          <div style={{ fontSize: "9px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "5px" }}>
             Analysis Details
           </div>
           {isSuspicious && regionDescs.length > 0 ? (
@@ -330,9 +327,8 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
           )}
         </div>
 
-        {/* RIGHT: Extracted Metadata */}
-        <div style={{ flex: 1, padding: "12px 14px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-          <div style={{ fontSize: "10px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "8px" }}>
+        <div style={{ flex: 1, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
+          <div style={{ fontSize: "9px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "5px" }}>
             Extracted Metadata
           </div>
           {metaItems.length > 0 ? (
