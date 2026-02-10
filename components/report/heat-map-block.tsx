@@ -214,16 +214,10 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
               ))}
             </div>
           ) : (
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
               <div style={{ textAlign: "center" }}>
                 <FrameSvg width={200} height={130} />
                 <div style={{ fontSize: "8px", color: "#6b7280", marginTop: "3px", fontWeight: 500 }}>Source Frame</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <FrameSvg width={200} height={130} showHeat={isSuspicious && isEnterprise} zones={zones} />
-                <div style={{ fontSize: "8px", color: isSuspicious ? "#B91C1C" : "#15803D", marginTop: "3px", fontWeight: 500 }}>
-                  {isSuspicious ? "Regions of Interest" : "Analysis Overlay"}
-                </div>
               </div>
             </div>
           )}

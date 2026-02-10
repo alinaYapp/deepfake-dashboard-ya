@@ -327,7 +327,7 @@ function generateReportHTML(caseData: Case): string {
           </div>`).join('')}
         </div>
         ` : `
-        <div style="display: flex; gap: 12px; justify-content: center;">
+        <div style="display: flex; justify-content: center;">
           <div style="text-align: center;">
             <svg width="200" height="130" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
               <defs><linearGradient id="fBgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs>
@@ -337,21 +337,6 @@ function generateReportHTML(caseData: Case): string {
               <line x1="67" y1="0" x2="67" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/><line x1="133" y1="0" x2="133" y2="150" stroke="#6b7280" stroke-width="0.3" stroke-dasharray="4,4"/>
             </svg>
             <div style="font-size: 8px; color: #6b7280; margin-top: 3px; font-weight: 500;">Source Frame</div>
-          </div>
-          <div style="text-align: center;">
-            <svg width="200" height="130" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 4px;">
-              <defs>
-                <linearGradient id="hBgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#374151"/><stop offset="100%" stop-color="#1f2937"/></linearGradient>
-                <radialGradient id="zoneHigh" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(220,38,38,0.55)"/><stop offset="50%" stop-color="rgba(234,88,12,0.3)"/><stop offset="100%" stop-color="rgba(250,204,21,0.05)"/></radialGradient>
-                <radialGradient id="zoneMedium" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(234,88,12,0.4)"/><stop offset="50%" stop-color="rgba(250,204,21,0.2)"/><stop offset="100%" stop-color="rgba(250,204,21,0.02)"/></radialGradient>
-                <radialGradient id="zoneLow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(250,204,21,0.3)"/><stop offset="60%" stop-color="rgba(250,204,21,0.1)"/><stop offset="100%" stop-color="rgba(250,204,21,0.0)"/></radialGradient>
-              </defs>
-              <rect width="200" height="150" fill="url(#hBgP)"/>
-              <ellipse cx="100" cy="56" rx="28" ry="32" fill="#374151"/><ellipse cx="100" cy="135" rx="48" ry="36" fill="#374151"/>
-              ${hasZones ? zoneSvgEllipses : ''}
-              ${!isSuspicious ? '<rect x="65" y="30" width="70" height="60" rx="3" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="1" stroke-dasharray="4,3"/>' : ''}
-            </svg>
-            <div style="font-size: 8px; color: ${isSuspicious ? '#B91C1C' : '#15803D'}; margin-top: 3px; font-weight: 500;">${isSuspicious ? 'Regions of Interest' : 'Analysis Overlay'}</div>
           </div>
         </div>
         `}
