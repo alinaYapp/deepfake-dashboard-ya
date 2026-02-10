@@ -166,7 +166,9 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
               padding: "10px 28px", borderRadius: "6px",
               background: verdictColor, color: "#ffffff",
               fontSize: "14px", fontWeight: 600, letterSpacing: "0.5px",
-              textTransform: "uppercase", textAlign: "center",
+              textTransform: "uppercase",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              textAlign: "center", lineHeight: "1",
             }}>
               {verdictLabel}
             </div>

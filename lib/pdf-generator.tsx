@@ -233,7 +233,7 @@ function generateReportHTML(caseData: Case): string {
         <div style="flex: 0 0 220px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; border-left: 1px solid #e5e7eb;">
           <div style="font-size: 11px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 20px;">Overall Confidence</div>
           <div style="font-size: 64px; font-weight: 700; color: ${verdictColor}; line-height: 1; text-align: center; margin-bottom: 20px;">${confidencePercent}<span style="font-size: 40px;">%</span></div>
-          <div style="margin-top: 20px; padding: 10px 28px; border-radius: 6px; background: ${verdictColor}; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; text-align: center;">${verdictLabel}</div>
+          <div style="margin-top: 20px; padding: 10px 28px; border-radius: 6px; background: ${verdictColor}; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1;">${verdictLabel}</div>
         </div>
       </div>
       <div style="display: flex; justify-content: center; gap: 32px; margin-top: 10px; font-size: 9px; color: #6b7280;">
