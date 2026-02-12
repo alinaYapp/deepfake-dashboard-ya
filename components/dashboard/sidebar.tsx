@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { Zap, LayoutDashboard, ScanSearch, Settings, HelpCircle } from "lucide-react"
+import { Zap, LayoutDashboard, ScanSearch, Radio, Settings, HelpCircle } from "lucide-react"
 
 interface SidebarProps {
   activeTab: string
@@ -11,6 +11,7 @@ interface SidebarProps {
 const menuItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "analyze", label: "Analyze", icon: ScanSearch },
+  { id: "streaming", label: "Streaming", icon: Radio },
 ]
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -35,7 +36,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         <ul className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon
-            const isActive = activeTab === item.id || (item.id === "analyze" && ["video", "documents", "audio", "streaming"].includes(activeTab))
+            const isActive = activeTab === item.id
             return (
               <li key={item.id}>
                 <button

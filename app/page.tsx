@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { TopBar } from "@/components/dashboard/top-bar"
 import { OverviewTab } from "@/components/dashboard/tabs/overview-tab"
-import { AnalyzeTabs } from "@/components/dashboard/tabs/analyze-tabs"
+import { AnalyzeVideoTab } from "@/components/dashboard/tabs/analyze-video-tab"
+import { StreamingIntegrations } from "@/components/dashboard/tabs/streaming-integrations"
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -15,17 +16,15 @@ export default function DashboardPage() {
       case "overview":
         return <OverviewTab />
       case "analyze":
-      case "video":
-      case "documents":
-      case "audio":
+        return <AnalyzeVideoTab />
       case "streaming":
-        return <AnalyzeTabs initialTab={activeTab === "analyze" ? "video" : activeTab} />
+        return <StreamingIntegrations />
       default:
         return <OverviewTab />
     }
   }
 
-  const isOverview = activeTab === "overview"
+  const showHeader = activeTab === "analyze"
 
   return (
     <div className="flex h-screen bg-background">
@@ -33,7 +32,7 @@ export default function DashboardPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar environment={environment} onEnvironmentChange={setEnvironment} />
         <main className="flex-1 overflow-y-auto p-6">
-          {!isOverview && (
+          {showHeader && (
             <div className="mb-6">
               <h1 className="text-2xl font-semibold text-foreground">Content Analysis</h1>
               <p className="text-sm text-muted-foreground">Upload and analyze content for deepfake detection</p>
