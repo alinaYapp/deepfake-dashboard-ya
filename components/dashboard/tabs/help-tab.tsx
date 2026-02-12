@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Download, FileText } from "lucide-react"
+
 
 export function HelpTab() {
   const [subject, setSubject] = useState("")
@@ -35,27 +35,6 @@ export function HelpTab() {
           we&apos;ll route you to the right owner — engineering, product, or sales.
         </p>
       </div>
-
-      {/* PDF Guide Banner */}
-      <Card className="border-primary/20 bg-primary/[0.03]">
-        <CardContent className="flex items-center justify-between gap-4 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <FileText className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">Download PDF Guide</p>
-              <p className="text-sm text-muted-foreground">
-                Guide will help you work more effectively with DataSpike Deepfake Detection
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" className="shrink-0 gap-2">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Contact Form */}
       <Card>
