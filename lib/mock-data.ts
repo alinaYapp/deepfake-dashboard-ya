@@ -16,7 +16,6 @@ export interface DistributionData {
   selfie_liveness: number
   document_id: number
   video: number
-  audio: number
 }
 
 export interface ProjectInfo {
@@ -203,14 +202,17 @@ export interface CaseDetails {
 export interface Case {
   id: string
   status: "completed" | "pending" | "failed"
-  job_type: "selfie_liveness" | "document_id" | "video" | "audio"
+  job_type: "selfie_liveness" | "document_id" | "video"
   content_type: string
   file_size_bytes: number
   score: number
   verdict: "real" | "fake" | "uncertain"
+  verdict_edited?: boolean
+  verdict_reason?: string
   sandbox: boolean
   applicant_id: string
   created_at: string
+  thumbnail_url: string
   details?: CaseDetails
 }
 
@@ -254,7 +256,6 @@ export const mockDistribution: DistributionData = {
   selfie_liveness: 45,
   document_id: 28,
   video: 18,
-  audio: 9,
 }
 
 export const mockCases: Case[] = [
@@ -268,7 +269,8 @@ export const mockCases: Case[] = [
     verdict: "fake",
     sandbox: false,
     applicant_id: "app_usr_12345",
-    created_at: "2024-03-18T14:32:00Z",
+    created_at: "2026-02-10T14:32:00Z",
+    thumbnail_url: "/thumbnails/selfie-1.jpg",
     details: {
       overall_verdict: "fake",
       confidence_score: 0.94,
@@ -502,7 +504,8 @@ export const mockCases: Case[] = [
     verdict: "real",
     sandbox: false,
     applicant_id: "app_usr_67890",
-    created_at: "2024-03-18T13:45:00Z",
+    created_at: "2026-02-08T13:45:00Z",
+    thumbnail_url: "/thumbnails/document-1.jpg",
   },
   {
     id: "chk_3a2b1c4d5e6f",
@@ -514,179 +517,8 @@ export const mockCases: Case[] = [
     verdict: "uncertain",
     sandbox: true,
     applicant_id: "app_usr_11223",
-    created_at: "2024-03-18T14:55:00Z",
-  },
-  {
-    id: "chk_7f6e5d4c3b2a",
-    status: "completed",
-    job_type: "audio",
-    content_type: "audio/wav",
-    file_size_bytes: 1234567,
-    score: 0.78,
-    verdict: "fake",
-    sandbox: false,
-    applicant_id: "app_usr_44556",
-    created_at: "2024-03-18T12:20:00Z",
-    details: {
-      overall_verdict: "fake",
-      confidence_score: 0.78,
-      processing_time_ms: 892,
-
-      project_info: {
-        case_id: "7f6e5d4c-3b2a-4c5d-9e8f-a1b2c3d4e5f6",
-        examiner_name: "auto-examiner-audio",
-        project_id: "59230",
-        date_processed: "2024-03-18T12:20:00Z",
-        verify_version: "2.374",
-        reference_library_version: "2.2.187",
-      },
-
-      file_summary: {
-        filename: "audio-sample-voice-clone.wav",
-        format: "WAV Audio File",
-        file_id: "161516",
-        date_processed: "2024-03-18T12:20:00Z",
-        date_last_updated: "2024-03-18T12:21:00Z",
-        file_checksum_sha256: "A9B8C7D6E5F4A3B2C1D0E9F8A7B6C5D4E3F2A1B0C9D8E7F6A5B4C3D2E1F0A9B8",
-        verify_file_signature: "audio.0847",
-      },
-
-      structural_analysis: {
-        structure_signature: "Audio File Match",
-        match_type: "audio.0847",
-        signature_id: "-9876543210",
-        signature_hash: "Audio",
-        signature_category: "Voice Synthesis",
-      },
-
-      device_generation_history: [
-        {
-          generation: 1,
-          brand: "ElevenLabs",
-          model: "Voice Clone",
-          camera_type: "AI Generator",
-          processing_steps: ["Text-to-Speech", "Voice Cloning"],
-        },
-      ],
-
-      file_signature_structure: [
-        { atom: "RIFF", percentage: 100.0 },
-        { atom: "fmt", percentage: 95.2 },
-        { atom: "data", percentage: 94.8 },
-      ],
-
-      attribute_similarity_analysis: {
-        brand: "ElevenLabs",
-        last_generation: "Voice Clone AI",
-        model: "Multilingual v2",
-      },
-
-      pixel_analysis: [],
-
-      voice_analysis: [
-        {
-          speaker_id: "Speaker 1",
-          result: "Suspicious",
-          confidence: 0.78,
-          language: "English (EN)",
-          language_confidence: 0.97,
-          gender: "Female",
-          gender_confidence: 0.95,
-          outlier_features: {
-            jitter: { value: 0.45, min: 0.0, max: 25.79 },
-            shimmer: { value: 8.23, min: 2.09, max: 95.46 },
-            background_noise: { value: 0.12, min: -0.07, max: 1.0 },
-            temporal_patterns: { value: 0.89, min: -0.74, max: 1.0 },
-          },
-        },
-      ],
-
-      forensic_analysis: [
-        {
-          severity: "critical",
-          name: "Signature Consistent With: ElevenLabs, Resemble AI, Descript, Play.ht",
-          type: "AI Voice Generator",
-          found_in: "Audio Structural Signature",
-        },
-      ],
-
-      structural_consistency: {
-        modification_tests: "passed",
-        validation_tests: "passed",
-      },
-
-      decoded_metadata: {
-        general: {
-          complete_name: "/tmp/audio-sample.wav",
-          format: "WAV",
-          format_profile: "PCM",
-          codec_id: "1",
-          file_size: "1.2 MiB",
-          duration: "32 s 450 ms",
-          overall_bit_rate: "320 kb/s",
-          writing_application: "ElevenLabs API",
-        },
-        video: {
-          id: 0,
-          format: "N/A",
-          format_info: "N/A",
-          format_profile: "N/A",
-          format_settings: "N/A",
-          format_settings_cabac: "N/A",
-          format_settings_ref_frames: "N/A",
-          codec_id: "N/A",
-          codec_id_info: "N/A",
-          duration: "N/A",
-          bit_rate: "N/A",
-          width: "N/A",
-          height: "N/A",
-          display_aspect_ratio: "N/A",
-          frame_rate_mode: "N/A",
-          frame_rate: "N/A",
-          color_space: "N/A",
-          chroma_subsampling: "N/A",
-          bit_depth: "N/A",
-          scan_type: "N/A",
-          bits_per_pixel_frame: "N/A",
-          stream_size: "N/A",
-          writing_library: "N/A",
-          encoding_settings: "N/A",
-        },
-        audio: {
-          id: 1,
-          format: "PCM",
-          format_info: "Pulse Code Modulation",
-          codec_id: "1",
-          duration: "32 s 450 ms",
-          bit_rate_mode: "Constant",
-          bit_rate: "320 kb/s",
-          channels: "1 channel",
-          channel_layout: "Mono",
-          sampling_rate: "22.05 kHz",
-          frame_rate: "22050 FPS",
-          compression_mode: "Lossless",
-          stream_size: "1.2 MiB (100%)",
-        },
-      },
-
-      c2pa_manifests: false,
-      proprietary_structural_data: [],
-      unknown_structural_data: false,
-
-      checks: {
-        face_swap: { detected: false, confidence: 0.0 },
-        lip_sync: { detected: false, confidence: 0.0 },
-        audio_visual_mismatch: { detected: false, confidence: 0.0 },
-        injection_attack: { detected: false, confidence: 0.1 },
-        replay_attack: { detected: false, confidence: 0.05 },
-      },
-      metadata: {
-        file_hash: "A9B8C7D6E5F4A3B2C1D0E9F8A7B6C5D4E3F2A1B0C9D8E7F6A5B4C3D2E1F0A9B8",
-        resolution: "N/A",
-        duration_seconds: 32.45,
-        codec: "PCM",
-      },
-    },
+    created_at: "2026-02-05T14:55:00Z",
+    thumbnail_url: "/thumbnails/video-1.jpg",
   },
   {
     id: "chk_1a2b3c4d5e6f",
@@ -698,7 +530,8 @@ export const mockCases: Case[] = [
     verdict: "uncertain",
     sandbox: false,
     applicant_id: "app_usr_77889",
-    created_at: "2024-03-18T11:00:00Z",
+    created_at: "2026-01-20T11:00:00Z",
+    thumbnail_url: "/thumbnails/selfie-2.jpg",
   },
   {
     id: "chk_2b3c4d5e6f7g",
@@ -710,7 +543,8 @@ export const mockCases: Case[] = [
     verdict: "real",
     sandbox: true,
     applicant_id: "app_usr_99001",
-    created_at: "2024-03-18T10:30:00Z",
+    created_at: "2026-01-15T10:30:00Z",
+    thumbnail_url: "/thumbnails/selfie-3.jpg",
     details: {
       overall_verdict: "real",
       confidence_score: 0.08,
@@ -879,7 +713,8 @@ export const mockCases: Case[] = [
     verdict: "uncertain",
     sandbox: false,
     applicant_id: "app_usr_22334",
-    created_at: "2024-03-17T16:45:00Z",
+    created_at: "2025-12-17T16:45:00Z",
+    thumbnail_url: "/thumbnails/document-2.jpg",
   },
   {
     id: "chk_5e6f7g8h9i0j",
@@ -891,7 +726,8 @@ export const mockCases: Case[] = [
     verdict: "fake",
     sandbox: false,
     applicant_id: "app_usr_55667",
-    created_at: "2024-03-17T14:20:00Z",
+    created_at: "2025-11-20T14:20:00Z",
+    thumbnail_url: "/thumbnails/video-2.jpg",
   },
 ]
 

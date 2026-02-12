@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import type { DateRange } from "react-day-picker"
 import { KPICards } from "@/components/dashboard/kpi-cards"
 import { DeepfakeTrendChart } from "@/components/dashboard/charts/deepfake-trend-chart"
@@ -21,11 +21,16 @@ export function OverviewTab() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(getDefaultRange)
   const [activePreset, setActivePreset] = useState<PresetKey>("30d")
+  const [cases, setCases] = useState<Case[]>(mockCases)
 
   const handleViewCase = (caseData: Case) => {
     setSelectedCase(caseData)
     setDrawerOpen(true)
   }
+
+  const handleUpdateCase = useCallback((updatedCase: Case) => {
+    setCases((prev) => prev.map((c) => (c.id === updatedCase.id ? updatedCase : c)))
+  }, [])
 
   const filteredTrends = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return mockTrends
@@ -55,7 +60,6 @@ export function OverviewTab() {
       selfie_liveness: Math.round(mockDistribution.selfie_liveness * ratio),
       document_id: Math.round(mockDistribution.document_id * ratio),
       video: Math.round(mockDistribution.video * ratio),
-      audio: Math.round(mockDistribution.audio * ratio),
     }
   }, [dateRange, filteredTrends.length])
 
@@ -85,7 +89,7 @@ export function OverviewTab() {
         </div>
       </div>
 
-      <CasesTable cases={mockCases} onViewCase={handleViewCase} />
+      <CasesTable cases={cases} onViewCase={handleViewCase} onUpdateCase={handleUpdateCase} />
 
       <CaseDrawer caseData={selectedCase} open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
