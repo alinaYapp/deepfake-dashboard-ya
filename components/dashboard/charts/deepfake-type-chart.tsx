@@ -12,14 +12,12 @@ const COLORS = [
   "oklch(0.65 0.2 250)", // primary blue
   "oklch(0.65 0.2 145)", // success green
   "oklch(0.75 0.15 85)", // warning yellow
-  "oklch(0.6 0.22 25)", // danger red
 ]
 
 const LABELS: Record<keyof DistributionData, string> = {
   selfie_liveness: "Selfie Liveness",
   document_id: "Document ID",
   video: "Video",
-  audio: "Audio",
 }
 
 export function DeepfakeTypeChart({ data }: DeepfakeTypeChartProps) {
