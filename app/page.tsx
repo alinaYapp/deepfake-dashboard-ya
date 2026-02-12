@@ -8,6 +8,7 @@ import { AnalyzeVideoTab } from "@/components/dashboard/tabs/analyze-video-tab"
 import { AnalyzeDocumentsTab } from "@/components/dashboard/tabs/analyze-documents-tab"
 import { AnalyzeAudioTab } from "@/components/dashboard/tabs/analyze-audio-tab"
 import { StreamingIntegrations } from "@/components/dashboard/tabs/streaming-integrations"
+import { HelpTab } from "@/components/dashboard/tabs/help-tab"
 
 const ANALYZE_TABS = ["video", "documents", "audio"]
 
@@ -29,6 +30,8 @@ export default function DashboardPage() {
         return <AnalyzeAudioTab />
       case "streaming":
         return <StreamingIntegrations />
+      case "help":
+        return <HelpTab />
       default:
         return <OverviewTab />
     }

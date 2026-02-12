@@ -11,8 +11,9 @@ import {
   AudioLines,
   Radio,
   ChevronRight,
-  Settings,
   HelpCircle,
+  BookOpen,
+  ExternalLink,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -146,15 +147,29 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <div className="border-t border-sidebar-border p-3">
         <ul className="space-y-1">
           <li>
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors">
-              <Settings className="h-4 w-4" />
-              Settings
-            </button>
+            <a
+              href="https://docs.dataspike.io/deepfake-detection/overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="flex-1">Documentation</span>
+              <ExternalLink className="h-3.5 w-3.5 opacity-50" />
+            </a>
           </li>
           <li>
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors">
+            <button
+              onClick={() => onTabChange("help")}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "help"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
               <HelpCircle className="h-4 w-4" />
-              Documentation
+              Help
             </button>
           </li>
         </ul>
