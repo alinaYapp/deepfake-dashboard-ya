@@ -146,16 +146,7 @@ export function AnalyzeVideoTab() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-secondary/50 p-4">
-              <h4 className="text-sm font-medium">Supported Checks</h4>
-              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <li>• Face swap detection</li>
-                <li>• Lip sync analysis</li>
-                <li>• Audio-visual mismatch</li>
-                <li>• Injection attack detection</li>
-                <li>• Replay attack detection</li>
-              </ul>
-            </div>
+
           </CardContent>
         </Card>
       </div>

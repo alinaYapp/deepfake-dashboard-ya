@@ -98,29 +98,9 @@ export function CaseDrawer({ caseData, open, onOpenChange }: CaseDrawerProps) {
             </div>
           </div>
 
-          {/* Checks (if details available) */}
+          {/* Metadata (if details available) */}
           {caseData.details && (
             <>
-              <Separator className="bg-border" />
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Detection Checks</h4>
-                <div className="space-y-2">
-                  {Object.entries(caseData.details.checks).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between rounded-lg bg-secondary/50 p-3">
-                      <span className="text-sm capitalize">{key.replace("_", " ")}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{(value.confidence * 100).toFixed(0)}%</span>
-                        {value.detected ? (
-                          <XCircle className="h-4 w-4 text-danger" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 text-success" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <Separator className="bg-border" />
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Metadata</h4>

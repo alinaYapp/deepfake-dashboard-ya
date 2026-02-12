@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import type { KPIData } from "@/lib/mock-data"
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, Clock, Activity } from "lucide-react"
+import { TrendingUp, TrendingDown, Shield, Activity, PenLine } from "lucide-react"
 
 interface KPICardsProps {
   data: KPIData
@@ -14,7 +14,7 @@ export function KPICards({ data }: KPICardsProps) {
       change: "+12.5%",
       trend: "up" as const,
       icon: Activity,
-      description: "Last 30 days",
+      description: "vs previous period",
     },
     {
       label: "Deepfakes Detected",
@@ -25,31 +25,20 @@ export function KPICards({ data }: KPICardsProps) {
       description: "Detection rate",
     },
     {
-      label: "False Positive Rate",
-      value: `${data.falsePositiveRate}%`,
-      change: "-0.03%",
-      trend: "down" as const,
-      icon: AlertTriangle,
-      description: "vs last month",
-    },
-    {
-      label: "Avg Response Time",
-      value: `${data.avgResponseTime}ms`,
-      change: "-18ms",
-      trend: "down" as const,
-      icon: Clock,
-      description: "P95 latency",
+      label: "Corrected Verdicts",
+      value: data.correctedVerdicts.toLocaleString(),
+      change: `${data.correctionRate}%`,
+      trend: "neutral" as const,
+      icon: PenLine,
+      description: "Correction rate",
     },
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {cards.map((card) => {
         const Icon = card.icon
-        const isPositiveTrend =
-          (card.trend === "up" && card.label !== "False Positive Rate") ||
-          (card.trend === "down" && card.label === "False Positive Rate") ||
-          (card.trend === "down" && card.label === "Avg Response Time")
+        const isPositiveTrend = card.trend === "up" && card.label === "Total Checks"
 
         return (
           <Card key={card.label} className="bg-card border-border">
@@ -64,12 +53,22 @@ export function KPICards({ data }: KPICardsProps) {
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                {isPositiveTrend ? (
-                  <TrendingDown className="h-4 w-4 text-success" />
+                {card.trend === "neutral" ? (
+                  <PenLine className="h-4 w-4 text-muted-foreground" />
+                ) : isPositiveTrend ? (
+                  <TrendingUp className="h-4 w-4 text-success" />
                 ) : (
-                  <TrendingUp className="h-4 w-4 text-danger" />
+                  <TrendingDown className="h-4 w-4 text-danger" />
                 )}
-                <span className={`text-sm font-medium ${isPositiveTrend ? "text-success" : "text-danger"}`}>
+                <span
+                  className={`text-sm font-medium ${
+                    card.trend === "neutral"
+                      ? "text-muted-foreground"
+                      : isPositiveTrend
+                        ? "text-success"
+                        : "text-danger"
+                  }`}
+                >
                   {card.change}
                 </span>
                 <span className="text-sm text-muted-foreground">{card.description}</span>
