@@ -45,11 +45,16 @@ export function OverviewTab() {
     const totalChecks = filteredTrends.reduce((sum, p) => sum + p.total, 0)
     const deepfakeCount = filteredTrends.reduce((sum, p) => sum + p.deepfakes, 0)
     const deepfakeRate = totalChecks > 0 ? Number(((deepfakeCount / totalChecks) * 100).toFixed(2)) : 0
+    const ratio = filteredTrends.length / (mockTrends.length || 1)
+    const correctedVerdicts = Math.round(mockKPIs.correctedVerdicts * ratio)
+    const correctionRate = totalChecks > 0 ? Number(((correctedVerdicts / totalChecks) * 100).toFixed(2)) : 0
     return {
       ...mockKPIs,
       totalChecks,
       deepfakeCount,
       deepfakeRate,
+      correctedVerdicts,
+      correctionRate,
     }
   }, [filteredTrends])
 

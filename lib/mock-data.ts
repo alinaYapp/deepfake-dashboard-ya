@@ -4,6 +4,8 @@ export interface KPIData {
   deepfakeRate: number
   falsePositiveRate: number
   avgResponseTime: number
+  correctedVerdicts: number
+  correctionRate: number
 }
 
 export interface TrendDataPoint {
@@ -235,6 +237,8 @@ export const mockKPIs: KPIData = {
   deepfakeRate: 0.99,
   falsePositiveRate: 0.12,
   avgResponseTime: 234,
+  correctedVerdicts: 38,
+  correctionRate: 0.45,
 }
 
 export const mockTrends: TrendDataPoint[] = [

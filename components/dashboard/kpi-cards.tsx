@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import type { KPIData } from "@/lib/mock-data"
-import { TrendingUp, TrendingDown, Shield, Activity } from "lucide-react"
+import { TrendingUp, TrendingDown, Shield, Activity, PenLine } from "lucide-react"
 
 interface KPICardsProps {
   data: KPIData
@@ -24,10 +24,18 @@ export function KPICards({ data }: KPICardsProps) {
       icon: Shield,
       description: "Detection rate",
     },
+    {
+      label: "Corrected Verdicts",
+      value: data.correctedVerdicts.toLocaleString(),
+      change: `${data.correctionRate}%`,
+      trend: "neutral" as const,
+      icon: PenLine,
+      description: "Correction rate",
+    },
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {cards.map((card) => {
         const Icon = card.icon
         const isPositiveTrend = card.trend === "up" && card.label === "Total Checks"
@@ -45,12 +53,22 @@ export function KPICards({ data }: KPICardsProps) {
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                {isPositiveTrend ? (
+                {card.trend === "neutral" ? (
+                  <PenLine className="h-4 w-4 text-muted-foreground" />
+                ) : isPositiveTrend ? (
                   <TrendingUp className="h-4 w-4 text-success" />
                 ) : (
                   <TrendingDown className="h-4 w-4 text-danger" />
                 )}
-                <span className={`text-sm font-medium ${isPositiveTrend ? "text-success" : "text-danger"}`}>
+                <span
+                  className={`text-sm font-medium ${
+                    card.trend === "neutral"
+                      ? "text-muted-foreground"
+                      : isPositiveTrend
+                        ? "text-success"
+                        : "text-danger"
+                  }`}
+                >
                   {card.change}
                 </span>
                 <span className="text-sm text-muted-foreground">{card.description}</span>
