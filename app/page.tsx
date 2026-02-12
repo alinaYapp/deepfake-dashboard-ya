@@ -25,20 +25,7 @@ export default function DashboardPage() {
     }
   }
 
-  const getTabInfo = () => {
-    if (activeTab === "overview") {
-      return {
-        title: "Dashboard Overview",
-        description: "Key metrics and recent activity for deepfake detection",
-      }
-    }
-    return {
-      title: "Content Analysis",
-      description: "Upload and analyze content for deepfake detection",
-    }
-  }
-
-  const { title, description } = getTabInfo()
+  const isOverview = activeTab === "overview"
 
   return (
     <div className="flex h-screen bg-background">
@@ -46,10 +33,12 @@ export default function DashboardPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar environment={environment} onEnvironmentChange={setEnvironment} />
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
+          {!isOverview && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-semibold text-foreground">Content Analysis</h1>
+              <p className="text-sm text-muted-foreground">Upload and analyze content for deepfake detection</p>
+            </div>
+          )}
           {renderTab()}
         </main>
       </div>
