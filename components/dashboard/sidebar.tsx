@@ -1,20 +1,52 @@
 "use client"
 
+import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { Zap, LayoutDashboard, ScanSearch, Radio, Settings, HelpCircle } from "lucide-react"
+import {
+  Zap,
+  LayoutDashboard,
+  ScanSearch,
+  Video,
+  FileText,
+  AudioLines,
+  Radio,
+  ChevronRight,
+  Settings,
+  HelpCircle,
+} from "lucide-react"
 
 interface SidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
 }
 
-const menuItems = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "analyze", label: "Analyze", icon: ScanSearch },
+const analyzeSubItems = [
+  { id: "video", label: "Video", icon: Video },
+  { id: "documents", label: "Documents", icon: FileText },
+  { id: "audio", label: "Audio", icon: AudioLines },
   { id: "streaming", label: "Streaming", icon: Radio },
 ]
 
+const ANALYZE_SUB_IDS = analyzeSubItems.map((i) => i.id)
+
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const isAnalyzeChild = ANALYZE_SUB_IDS.includes(activeTab)
+  const [analyzeOpen, setAnalyzeOpen] = useState(isAnalyzeChild)
+
+  const handleAnalyzeClick = () => {
+    if (analyzeOpen && isAnalyzeChild) {
+      // Already open and on a sub-tab, just collapse
+      setAnalyzeOpen(false)
+    } else if (analyzeOpen) {
+      setAnalyzeOpen(false)
+    } else {
+      setAnalyzeOpen(true)
+      if (!isAnalyzeChild) {
+        onTabChange("video")
+      }
+    }
+  }
+
   return (
     <aside className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
@@ -31,29 +63,82 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <div className="mb-2 px-3">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Deepfake Detection</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Deepfake Detection
+          </span>
         </div>
         <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activeTab === item.id
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => onTabChange(item.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              </li>
-            )
-          })}
+          {/* Overview */}
+          <li>
+            <button
+              onClick={() => onTabChange("overview")}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "overview"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Overview
+            </button>
+          </li>
+
+          {/* Analyze (collapsible) */}
+          <li>
+            <button
+              onClick={handleAnalyzeClick}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isAnalyzeChild
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <ScanSearch className="h-4 w-4" />
+              <span className="flex-1 text-left">Analyze</span>
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-200",
+                  analyzeOpen && "rotate-90",
+                )}
+              />
+            </button>
+
+            {/* Sub-items */}
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-200",
+                analyzeOpen ? "mt-1 max-h-60 opacity-100" : "max-h-0 opacity-0",
+              )}
+            >
+              <ul className="ml-4 space-y-0.5 border-l border-sidebar-border pl-3">
+                {analyzeSubItems.map((sub) => {
+                  const SubIcon = sub.icon
+                  const isSubActive = activeTab === sub.id
+                  return (
+                    <li key={sub.id}>
+                      <button
+                        onClick={() => {
+                          setAnalyzeOpen(true)
+                          onTabChange(sub.id)
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
+                          isSubActive
+                            ? "bg-sidebar-accent/70 text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <SubIcon className="h-3.5 w-3.5" />
+                        {sub.label}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </li>
         </ul>
       </nav>
 
