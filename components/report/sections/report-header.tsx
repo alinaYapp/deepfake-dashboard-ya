@@ -3,6 +3,7 @@ import {
   type Verdict,
   formatSubmissionDate,
 } from "@/lib/deepfake-report-types"
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 
 interface ReportHeaderProps {
   report: DeepfakeReport
@@ -14,31 +15,10 @@ interface ReportHeaderProps {
   confidencePercent: string
 }
 
-function VerdictIcon({ verdict, color }: { verdict: Verdict; color: string }) {
-  if (verdict === "SUSPICIOUS") {
-    return (
-      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-        <circle cx="6" cy="6" r="5" stroke={color} strokeWidth="1.5" />
-        <line x1="4" y1="4" x2="8" y2="8" stroke={color} strokeWidth="1.5" />
-        <line x1="8" y1="4" x2="4" y2="8" stroke={color} strokeWidth="1.5" />
-      </svg>
-    )
-  }
-  if (verdict === "UNCERTAIN") {
-    return (
-      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-        <circle cx="6" cy="6" r="5" stroke={color} strokeWidth="1.5" />
-        <line x1="6" y1="3.5" x2="6" y2="6.5" stroke={color} strokeWidth="1.5" />
-        <circle cx="6" cy="8.5" r="0.7" fill={color} />
-      </svg>
-    )
-  }
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-      <circle cx="6" cy="6" r="5" stroke={color} strokeWidth="1.5" />
-      <path d="M3.5 6L5.5 8L8.5 4" stroke={color} strokeWidth="1.5" />
-    </svg>
-  )
+function VerdictBadgeIcon({ verdict, color }: { verdict: Verdict; color: string }) {
+  if (verdict === "SUSPICIOUS") return <XCircle size={12} color={color} />
+  if (verdict === "UNCERTAIN") return <AlertTriangle size={12} color={color} />
+  return <CheckCircle size={12} color={color} />
 }
 
 function SemiCircularGauge({
@@ -54,7 +34,6 @@ function SemiCircularGauge({
   const strokeWidth = 8
   const cx = 60
   const cy = 60
-  // Semi-circle: from 180deg to 0deg (left to right across the top)
   const circumference = Math.PI * radius
   const filled = circumference * score
   const remaining = circumference - filled
@@ -101,7 +80,6 @@ export function ReportHeader({
   vDarkColor,
   vBg,
   vBadgeBg,
-  confidencePercent,
 }: ReportHeaderProps) {
   return (
     <div style={{ marginBottom: "10px" }}>
@@ -180,7 +158,7 @@ export function ReportHeader({
                         letterSpacing: "0.3px",
                       }}
                     >
-                      <VerdictIcon verdict={verdict} color={vDarkColor} />
+                      <VerdictBadgeIcon verdict={verdict} color={vDarkColor} />
                       {verdict}
                     </span>
                   ),

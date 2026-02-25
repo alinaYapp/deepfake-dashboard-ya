@@ -1,3 +1,4 @@
+import { Info, AlertTriangle, CheckCircle } from "lucide-react"
 import type { ErrorCode, ProvenanceInfo, ContainerInfo } from "@/lib/deepfake-report-types"
 
 interface ForensicFlagsProps {
@@ -74,39 +75,17 @@ function buildFlags(
   return flags
 }
 
-function FlagIcon({ type, iconType }: { type: "red" | "amber" | "green"; iconType: "info" | "warning" | "check" }) {
-  if (iconType === "check") {
-    return (
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-        <circle cx="8" cy="8" r="7" fill="#10B981" />
-        <path d="M5 8L7 10L11 6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-  if (iconType === "warning") {
-    const fill = type === "red" ? "#DC2626" : "#F59E0B"
-    return (
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-        <path d="M8 1.5L1 13.5h14L8 1.5z" fill={fill} />
-        <line x1="8" y1="6.5" x2="8" y2="10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="8" cy="11.5" r="0.7" fill="#fff" />
-      </svg>
-    )
-  }
-  // info
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-      <circle cx="8" cy="8" r="7" fill="#DC2626" />
-      <circle cx="8" cy="5.5" r="0.7" fill="#fff" />
-      <line x1="8" y1="7.5" x2="8" y2="11" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
+const flagStyles: Record<string, { bg: string; border: string; titleColor: string; descColor: string; iconColor: string }> = {
+  red: { bg: "#FEE2E2", border: "#DC2626", titleColor: "#991B1B", descColor: "#7F1D1D", iconColor: "#DC2626" },
+  amber: { bg: "#FEF3C7", border: "#F59E0B", titleColor: "#92400E", descColor: "#78350F", iconColor: "#F59E0B" },
+  green: { bg: "#D1FAE5", border: "#10B981", titleColor: "#065F46", descColor: "#047857", iconColor: "#10B981" },
 }
 
-const flagStyles: Record<string, { bg: string; border: string; titleColor: string; descColor: string }> = {
-  red: { bg: "#FEE2E2", border: "#DC2626", titleColor: "#991B1B", descColor: "#7F1D1D" },
-  amber: { bg: "#FEF3C7", border: "#F59E0B", titleColor: "#92400E", descColor: "#78350F" },
-  green: { bg: "#D1FAE5", border: "#10B981", titleColor: "#065F46", descColor: "#047857" },
+function FlagIcon({ type, iconType }: { type: "red" | "amber" | "green"; iconType: "info" | "warning" | "check" }) {
+  const s = flagStyles[type]
+  if (iconType === "check") return <CheckCircle size={15} color={s.iconColor} style={{ flexShrink: 0, marginTop: 1 }} />
+  if (iconType === "warning") return <AlertTriangle size={15} color={s.iconColor} style={{ flexShrink: 0, marginTop: 1 }} />
+  return <Info size={15} color={s.iconColor} style={{ flexShrink: 0, marginTop: 1 }} />
 }
 
 export function ForensicFlags({ errors, provenance, container }: ForensicFlagsProps) {

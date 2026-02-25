@@ -26,7 +26,6 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
   const vBadgeBg = verdictBadgeBg(verdict)
   const confidencePercent = (report.overall_score * 100).toFixed(1)
 
-  const hasDeepfake = report.errors.includes("DeepfakeDetected")
   const hasMetadataErrors = report.errors.some(
     (e) =>
       e === "MetadataProfessionalSoftware" ||
@@ -34,16 +33,11 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
       e === "SuspiciousMetadata"
   )
 
-  const faceAlert = hasDeepfake
-  const faceValue = faceAlert ? `${confidencePercent}%` : "N/A"
-
-  const metadataAlert = hasMetadataErrors
-  const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
-
   return (
     <div
       style={{
-        width: "794px",
+        width: "900px",
+        maxWidth: "900px",
         minHeight: "1123px",
         padding: "28px 40px 60px",
         position: "relative",
@@ -66,10 +60,8 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
       />
 
       <AnalysisSummaryBar
-        faceAlert={faceAlert}
-        faceValue={faceValue}
-        metadataAlert={metadataAlert}
-        metadataValue={metadataValue}
+        overallScore={report.overall_score}
+        metadataAlert={hasMetadataErrors}
         report={report}
       />
 
@@ -81,13 +73,18 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
         <ManipulationZones heatmapFrame={report.heatmap_frame} />
       )}
 
-      <ForensicFlags
-        errors={report.errors}
-        provenance={report.video_metadata.provenance}
-        container={report.video_metadata.container}
-      />
-
-      <ExtractedMetadata videoMetadata={report.video_metadata} />
+      <div style={{ display: "flex", gap: "14px" }}>
+        <div style={{ flex: 1 }}>
+          <ForensicFlags
+            errors={report.errors}
+            provenance={report.video_metadata.provenance}
+            container={report.video_metadata.container}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <ExtractedMetadata videoMetadata={report.video_metadata} />
+        </div>
+      </div>
 
       <ReportFooter />
     </div>
