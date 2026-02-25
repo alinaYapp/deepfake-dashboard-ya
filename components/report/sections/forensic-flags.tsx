@@ -111,7 +111,7 @@ export function ForensicFlags({ errors, provenance, container }: ForensicFlagsPr
       >
         Forensic Flags
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }} data-v0-updated="2026-02-25">
         {flags.map((flag, i) => {
           const s = flagStyles[flag.type]
           return (

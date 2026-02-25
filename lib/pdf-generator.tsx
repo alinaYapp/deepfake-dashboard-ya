@@ -2,6 +2,7 @@ import { type Case, formatBytes, formatDate } from "@/lib/mock-data"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 
+// PDF v3 — data-driven forensic flags + grouped metadata subsections
 function generateReportHTML(caseData: Case): string {
   const reportNumber = caseData.id.replace("chk_", "").toUpperCase()
   const reportDate = new Date().toLocaleDateString("en-US", {
@@ -516,6 +517,7 @@ async function generatePDFFromHTML(html: string, filename: string, orientation: 
 }
 
 export async function downloadReport(caseData: Case) {
+  console.log("[v0] downloadReport v3 — generating PDF with data-driven flags for case:", caseData.id, "verdict:", caseData.verdict, "sigCategory:", caseData.details?.structural_analysis?.signature_category, "encoder:", caseData.details?.decoded_metadata?.general?.writing_application)
   const html = generateReportHTML(caseData)
   const filename = `DataSpike-Report-${caseData.id.replace("chk_", "").toUpperCase()}.pdf`
   await generatePDFFromHTML(html, filename, "portrait")
