@@ -352,6 +352,7 @@ function generateReportHTML(caseData: Case): string {
       <div style="flex: 1.4; display: flex; flex-direction: column;">
         <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Forensic Flags</div>
         ${(() => {
+          console.log("[v0] PDF forensic flags IIFE executing. isSuspicious:", isSuspicious, "sigCat:", details?.structural_analysis?.signature_category, "encoder:", meta?.general?.writing_application)
           const pdfFlags: { type: string; title: string; description: string }[] = []
           const pdfSigCat = details?.structural_analysis?.signature_category
           const pdfEncoder = meta?.general?.writing_application
@@ -390,8 +391,8 @@ function generateReportHTML(caseData: Case): string {
         })()}
       </div>
       ${(() => {
-        type MetaSection = { heading: string; rows: { label: string; value: string }[] }
-        const metaSections: MetaSection[] = []
+        console.log("[v0] PDF metadata IIFE executing. meta:", JSON.stringify(meta?.general), "video:", JSON.stringify(meta?.video))
+        const metaSections: { heading: string; rows: { label: string; value: string }[] }[] = []
         const vRows: { label: string; value: string }[] = []
         if (meta?.video) {
           if (meta.video.codec_id || meta.video.format) vRows.push({ label: 'Codec', value: meta.video.format ? meta.video.format + ' (' + (meta.video.codec_id || '') + ')' : (meta.video.codec_id || '\u2014') })
