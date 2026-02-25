@@ -172,7 +172,7 @@ function FlagIcon({ icon }: { icon: "info" | "warn" | "check" }) {
 // ── Metadata builder (grouped subsections from decoded_metadata) ───
 interface MetaGroup { heading: string; rows: { label: string; value: string }[] }
 
-function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: Record<string, string>; audio?: Record<string, string> }): MetaGroup[] {
+function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: Record<string, string>; audio?: Record<string, string> }, provenance?: CaseDetails["provenance"]): MetaGroup[] {
   const groups: MetaGroup[] = []
 
   // Video Stream
@@ -196,7 +196,16 @@ function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: R
   if (decoded?.general?.writing_application) cr.push({ label: "Encoder", value: decoded.general.writing_application })
   if (cr.length > 0) groups.push({ heading: "Container", rows: cr })
 
-  // Provenance subsection is not available in CaseDetails — shown only on DeepfakeReport path
+  // Provenance (from video_metadata.provenance)
+  if (provenance) {
+    const pr: { label: string; value: string }[] = []
+    if (provenance.camera_make) pr.push({ label: "Camera Make", value: provenance.camera_make })
+    if (provenance.camera_model) pr.push({ label: "Camera Model", value: provenance.camera_model })
+    if (provenance.software) pr.push({ label: "Software", value: provenance.software })
+    if (provenance.creation_date) pr.push({ label: "Creation Date", value: provenance.creation_date })
+    if (provenance.gps_location) pr.push({ label: "GPS Location", value: provenance.gps_location })
+    if (pr.length > 0) groups.push({ heading: "Provenance", rows: pr })
+  }
 
   return groups
 }
@@ -213,7 +222,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
 
   const decoded = details?.decoded_metadata
   const forensicFlags = buildForensicFlags(isSuspicious, details)
-  const metaGroups = buildMetaGroups(decoded)
+  const metaGroups = buildMetaGroups(decoded, details?.provenance)
 
   return (
     <div style={{ marginBottom: "6px" }}>

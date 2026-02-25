@@ -407,6 +407,16 @@ function generateReportHTML(caseData: Case): string {
         if (meta?.general?.format) cRows.push({ label: 'Format', value: meta.general.format + (meta.general.format_profile ? ' (' + meta.general.format_profile + ')' : '') })
         if (meta?.general?.writing_application) cRows.push({ label: 'Encoder', value: meta.general.writing_application })
         if (cRows.length > 0) metaSections.push({ heading: 'Container', rows: cRows })
+        const prov = details?.provenance
+        if (prov) {
+          const pRows: { label: string; value: string }[] = []
+          if (prov.camera_make) pRows.push({ label: 'Camera Make', value: prov.camera_make })
+          if (prov.camera_model) pRows.push({ label: 'Camera Model', value: prov.camera_model })
+          if (prov.software) pRows.push({ label: 'Software', value: prov.software })
+          if (prov.creation_date) pRows.push({ label: 'Creation Date', value: prov.creation_date })
+          if (prov.gps_location) pRows.push({ label: 'GPS Location', value: prov.gps_location })
+          if (pRows.length > 0) metaSections.push({ heading: 'Provenance', rows: pRows })
+        }
 
         if (metaSections.length === 0) {
           return '<div style="flex:0.6;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px"><div style="font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">Extracted Metadata</div><div style="font-size:9px;color:#6b7280">No metadata available</div></div>'

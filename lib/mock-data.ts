@@ -180,6 +180,15 @@ export interface CaseDetails {
   // Decoded metadata
   decoded_metadata: DecodedMetadata
 
+  // Provenance (from EXIF/XMP — camera or software origin)
+  provenance?: {
+    camera_make?: string
+    camera_model?: string
+    software?: string
+    creation_date?: string
+    gps_location?: string
+  }
+
   // C2PA and provenance
   c2pa_manifests: boolean
   proprietary_structural_data: { description: string; size: number; start: number; end: number }[]
@@ -637,6 +646,11 @@ export const mockCases: Case[] = [
           stream_size: "12 KiB (2%)",
         },
       },
+      provenance: {
+        camera_make: "Apple",
+        camera_model: "iPhone 15 Pro",
+        creation_date: "2026-02-08T13:45:00Z",
+      },
       c2pa_manifests: false,
       proprietary_structural_data: [],
       unknown_structural_data: false,
@@ -692,8 +706,8 @@ export const mockCases: Case[] = [
         structure_signature: "Partial Signature Match",
         match_type: "rl.2048",
         signature_id: "-9876543210",
-        signature_hash: "Uncategorized",
-        signature_category: "Uncategorized",
+        signature_hash: "Professional Software",
+        signature_category: "Professional Software",
       },
       device_generation_history: [
         {
@@ -757,7 +771,7 @@ export const mockCases: Case[] = [
           file_size: "8.5 MiB",
           duration: "15 s 200 ms",
           overall_bit_rate: "2 800 kb/s",
-          writing_application: "Lavf60.3.100",
+          writing_application: "Adobe After Effects 2024",
         },
         video: {
           id: 1,
@@ -782,9 +796,12 @@ export const mockCases: Case[] = [
           scan_type: "Progressive",
           bits_per_pixel_frame: "0.043",
           stream_size: "8.2 MiB (96%)",
-          writing_library: "Lavf60.3.100",
+          writing_library: "Adobe After Effects 2024",
           encoding_settings: "N/A",
         },
+      },
+      provenance: {
+        software: "Adobe After Effects 2024",
       },
       c2pa_manifests: false,
       proprietary_structural_data: [],
