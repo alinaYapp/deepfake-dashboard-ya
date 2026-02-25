@@ -31,16 +31,15 @@ function generateReportHTML(caseData: Case): string {
   const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
   const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
 
-  // Check metadata suspicion from signature data
-  const sigCategory = details?.verify_result?.structure_signature_result?.signature_category
+  // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
+  const sigCategory = details?.structural_analysis?.signature_category
   const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
-  const hasEncoderSignature = details?.file_signature_structure?.some(
-    (s: { name?: string }) => s.name?.toLowerCase().includes("converter") || s.name?.toLowerCase().includes("ffmpeg") || s.name?.toLowerCase().includes("encoder")
-  )
+  const encoder = details?.decoded_metadata?.general?.writing_application
+  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter")))
 
   type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
   const scoreAlert = caseData.score >= 0.7
-  const metadataAlert = hasSuspiciousSignature || hasEncoderSignature || false
+  const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
   const metrics: Metric[] = [
     {
       label: "Overall Score",
@@ -351,42 +350,76 @@ function generateReportHTML(caseData: Case): string {
     <div style="display: flex; gap: 8px; margin-bottom: 6px;">
       <div style="flex: 1.4; display: flex; flex-direction: column;">
         <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Forensic Flags</div>
-        ${isSuspicious || isUncertain ? `
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEE2E2; border-left: 4px solid #DC2626; border-radius: 4px;">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>
-            <div>
-              <div style="font-size: 9px; font-weight: 700; color: #991B1B; line-height: 1.3;">High confidence of AI-generated content detected</div>
-              <div style="font-size: 8px; color: #7F1D1D; line-height: 1.4; margin-top: 2px;">Signatures consistent with known deepfake generation tools found in file structure</div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 4px;">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>
-            <div>
-              <div style="font-size: 9px; font-weight: 700; color: #92400E; line-height: 1.3;">Video converter/encoder signatures detected</div>
-              <div style="font-size: 8px; color: #78350F; line-height: 1.4; margin-top: 2px;">${meta?.general?.writing_application || 'Suspicious encoding metadata detected'}</div>
-            </div>
-          </div>
-        </div>
-        ` : `
-        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 4px;">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div>
-            <div style="font-size: 9px; font-weight: 700; color: #065F46; line-height: 1.3;">No forensic flags detected</div>
-            <div style="font-size: 8px; color: #047857; line-height: 1.4; margin-top: 2px;">File structure analysis found no signatures associated with AI generation or suspicious editing tools</div>
-          </div>
-        </div>
-        `}
-      </div>
-      <div style="flex: 0.6; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px;">
-        <div style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;">Extracted Metadata</div>
-        ${metaItems.length > 0 ? metaItems.slice(0, 8).map(m => `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 8px; color: #6b7280;">${m.label}</span>
-          <span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
-        </div>`).join('') : '<div style="font-size: 9px; color: #6b7280;">No metadata available</div>'}
+        ${(() => {
+          const pdfFlags: { type: string; title: string; description: string }[] = []
+          const pdfSigCat = details?.structural_analysis?.signature_category
+          const pdfEncoder = meta?.general?.writing_application
+          const pdfIsAiGen = pdfSigCat === 'AI Generator'
+          const pdfIsProSw = pdfSigCat === 'Professional Software' || pdfSigCat === 'Uncategorized'
+          const pdfHasSusEnc = !!(pdfEncoder && (pdfEncoder.toLowerCase().includes('ffmpeg') || pdfEncoder.toLowerCase().includes('lavf') || pdfEncoder.toLowerCase().includes('converter')))
 
+          if (isSuspicious) {
+            pdfFlags.push({ type: 'red', title: 'High confidence of AI-generated content detected', description: 'Deepfake detected by the model. Signatures consistent with known deepfake generation tools found in file structure.' })
+          }
+          if (pdfIsAiGen) {
+            pdfFlags.push({ type: 'red', title: 'AI video generator signatures detected', description: pdfEncoder ? 'Metadata contains clear signs that the video was generated by an AI tool. Software: ' + pdfEncoder + '.' : 'Metadata contains clear signs that the video was generated by an AI tool.' })
+          }
+          if (pdfIsProSw) {
+            pdfFlags.push({ type: 'amber', title: 'Professional video editing software detected', description: pdfEncoder ? 'Metadata contains clear signs of professional software such as ' + pdfEncoder + '.' : 'Metadata contains clear signs of professional software such as Adobe After Effects or similar tools.' })
+          }
+          if (pdfHasSusEnc) {
+            pdfFlags.push({ type: 'amber', title: 'Suspicious metadata detected', description: pdfEncoder ? 'Suspicious metadata found \u2014 encoder: ' + pdfEncoder + '. This can be a result of video conversions.' : 'Suspicious metadata found.' })
+          }
+          if (pdfFlags.length === 0) {
+            pdfFlags.push({ type: 'green', title: 'No signs of manipulation detected', description: 'No errors were found during analysis.' })
+          }
+
+          return '<div style="display: flex; flex-direction: column; gap: 6px;">' + pdfFlags.map(f => {
+            const bg = f.type === 'red' ? '#FEE2E2' : f.type === 'amber' ? '#FEF3C7' : '#D1FAE5'
+            const border = f.type === 'red' ? '#DC2626' : f.type === 'amber' ? '#F59E0B' : '#10B981'
+            const titleC = f.type === 'red' ? '#991B1B' : f.type === 'amber' ? '#92400E' : '#065F46'
+            const descC = f.type === 'red' ? '#7F1D1D' : f.type === 'amber' ? '#78350F' : '#047857'
+            const icon = f.type === 'red'
+              ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>'
+              : f.type === 'amber'
+              ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>'
+              : '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:' + bg + ';border-left:4px solid ' + border + ';border-radius:4px;">' + icon + '<div><div style="font-size:9px;font-weight:700;color:' + titleC + ';line-height:1.3">' + f.title + '</div><div style="font-size:8px;color:' + descC + ';line-height:1.4;margin-top:2px">' + f.description + '</div></div></div>'
+          }).join('') + '</div>'
+        })()}
       </div>
+      ${(() => {
+        type MetaSection = { heading: string; rows: { label: string; value: string }[] }
+        const metaSections: MetaSection[] = []
+        const vRows: { label: string; value: string }[] = []
+        if (meta?.video) {
+          if (meta.video.codec_id || meta.video.format) vRows.push({ label: 'Codec', value: meta.video.format ? meta.video.format + ' (' + (meta.video.codec_id || '') + ')' : (meta.video.codec_id || '\u2014') })
+          if (meta.video.width && meta.video.height) vRows.push({ label: 'Resolution', value: meta.video.width + ' x ' + meta.video.height })
+          if (meta.video.frame_rate) vRows.push({ label: 'Frame Rate', value: meta.video.frame_rate })
+        }
+        if (meta?.general) {
+          if (meta.general.overall_bit_rate) vRows.push({ label: 'Bitrate', value: meta.general.overall_bit_rate })
+          if (meta.general.duration) vRows.push({ label: 'Duration', value: meta.general.duration })
+        }
+        if (meta?.audio?.sampling_rate) vRows.push({ label: 'Sample Rate', value: meta.audio.sampling_rate })
+        if (vRows.length > 0) metaSections.push({ heading: 'Video Stream', rows: vRows })
+        const cRows: { label: string; value: string }[] = []
+        if (meta?.general?.format) cRows.push({ label: 'Format', value: meta.general.format + (meta.general.format_profile ? ' (' + meta.general.format_profile + ')' : '') })
+        if (meta?.general?.writing_application) cRows.push({ label: 'Encoder', value: meta.general.writing_application })
+        if (cRows.length > 0) metaSections.push({ heading: 'Container', rows: cRows })
+
+        if (metaSections.length === 0) {
+          return '<div style="flex:0.6;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px"><div style="font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">Extracted Metadata</div><div style="font-size:9px;color:#6b7280">No metadata available</div></div>'
+        }
+        return '<div style="flex:0.6;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">' +
+          '<div style="padding:6px 10px 3px;font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px">Extracted Metadata</div>' +
+          metaSections.map((sec, si) =>
+            '<div style="padding:4px 10px 2px;font-size:7.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.6px">' + sec.heading + '</div>' +
+            sec.rows.map((r, i) =>
+              '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 10px;background:' + (i % 2 === 0 ? '#f8fafc' : '#ffffff') + ';border-bottom:' + (i < sec.rows.length - 1 || si < metaSections.length - 1 ? '1px solid #f0f1f3' : 'none') + '"><span style="font-size:8px;color:#6b7280">' + r.label + '</span><span style="font-size:8px;color:#374151;font-weight:500;font-family:monospace">' + r.value + '</span></div>'
+            ).join('')
+          ).join('') + '</div>'
+      })()}
     </div>
 
     <!-- Footer -->

@@ -13,13 +13,12 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   const verdictLabel = isSuspicious ? "Suspicious" : isUncertain ? "Uncertain" : "Authentic"
   const scoreAlert = caseData.score >= 0.7
 
-  // Check metadata suspicion: signature_category "AI Generator" or file_signature_structure with converter/encoder matches
-  const sigCategory = details?.verify_result?.structure_signature_result?.signature_category
+  // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
+  const sigCategory = details?.structural_analysis?.signature_category
   const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
-  const hasEncoderSignature = details?.file_signature_structure?.some(
-    (s) => s.name?.toLowerCase().includes("converter") || s.name?.toLowerCase().includes("ffmpeg") || s.name?.toLowerCase().includes("encoder")
-  )
-  const metadataAlert = hasSuspiciousSignature || hasEncoderSignature || false
+  const encoder = details?.decoded_metadata?.general?.writing_application
+  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter")))
+  const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
   const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
 
   const cards = [

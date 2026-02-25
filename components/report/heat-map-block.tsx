@@ -140,7 +140,7 @@ function checkIcon() {
 
 function buildFlagsFromDetails(isSuspicious: boolean, details?: CaseDetails): FlagDef[] {
   const encoder = details?.decoded_metadata?.general?.writing_application
-  const sigCategory = details?.verify_result?.structure_signature_result?.signature_category
+  const sigCategory = details?.structural_analysis?.signature_category
   const provSoftware = details?.decoded_metadata?.general?.writing_application
   const isAiGenerator = sigCategory === "AI Generator"
   const isProfessionalSoftware = sigCategory === "Professional Software" || sigCategory === "Uncategorized"
