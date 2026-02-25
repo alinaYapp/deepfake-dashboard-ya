@@ -33,6 +33,7 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
       e === "SuspiciousMetadata"
   )
 
+
   return (
     <div
       style={{
@@ -65,11 +66,11 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
         report={report}
       />
 
-      {report.top_score_frames && report.top_score_frames.length > 0 && (
+      {report.errors.includes("DeepfakeDetected") && report.top_score_frames && report.top_score_frames.length > 0 && (
         <FrameByFrameAnalysis frames={report.top_score_frames} />
       )}
 
-      {report.heatmap_frame && (
+      {report.errors.includes("DeepfakeDetected") && report.heatmap_frame && (
         <ManipulationZones heatmapFrame={report.heatmap_frame} />
       )}
 
