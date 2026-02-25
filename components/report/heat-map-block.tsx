@@ -172,7 +172,7 @@ function FlagIcon({ icon }: { icon: "info" | "warn" | "check" }) {
 // ── Metadata builder (grouped subsections from decoded_metadata) ───
 interface MetaGroup { heading: string; rows: { label: string; value: string }[] }
 
-function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: Record<string, string>; audio?: Record<string, string> }, details?: CaseDetails): MetaGroup[] {
+function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: Record<string, string>; audio?: Record<string, string> }): MetaGroup[] {
   const groups: MetaGroup[] = []
 
   // Video Stream
@@ -196,21 +196,7 @@ function buildMetaGroups(decoded?: { general?: Record<string, string>; video?: R
   if (decoded?.general?.writing_application) cr.push({ label: "Encoder", value: decoded.general.writing_application })
   if (cr.length > 0) groups.push({ heading: "Container", rows: cr })
 
-  // Provenance (from EXIF/XMP — only when real camera data exists)
-  const pr: { label: string; value: string }[] = []
-  if (decoded?.general?.writing_application) {
-    const app = decoded.general.writing_application
-    const isCamera = !app.toLowerCase().includes("lavf") && !app.toLowerCase().includes("ffmpeg")
-    if (isCamera) pr.push({ label: "Device", value: app })
-  }
-  if (details?.device_generation_history && details.device_generation_history.length > 0) {
-    const firstGen = details.device_generation_history[0]
-    if (firstGen.camera_type === "Device Camera") {
-      pr.push({ label: "Camera Make", value: firstGen.brand })
-      pr.push({ label: "Camera Model", value: firstGen.model })
-    }
-  }
-  if (pr.length > 0) groups.push({ heading: "Provenance", rows: pr })
+  // Provenance subsection is not available in CaseDetails — shown only on DeepfakeReport path
 
   return groups
 }
@@ -227,7 +213,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
 
   const decoded = details?.decoded_metadata
   const forensicFlags = buildForensicFlags(isSuspicious, details)
-  const metaGroups = buildMetaGroups(decoded, details)
+  const metaGroups = buildMetaGroups(decoded)
 
   return (
     <div style={{ marginBottom: "6px" }}>

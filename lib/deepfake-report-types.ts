@@ -214,7 +214,7 @@ export const mockAuthenticReport: DeepfakeReport = {
     },
     container: {
       format: "MPEG-4 (Base Media)",
-      encoder: "Lavf59.27.100",
+      encoder: "Apple iPhone 15 Pro",
     },
     provenance: {
       camera_make: "Apple",

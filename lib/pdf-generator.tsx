@@ -407,20 +407,6 @@ function generateReportHTML(caseData: Case): string {
         if (meta?.general?.format) cRows.push({ label: 'Format', value: meta.general.format + (meta.general.format_profile ? ' (' + meta.general.format_profile + ')' : '') })
         if (meta?.general?.writing_application) cRows.push({ label: 'Encoder', value: meta.general.writing_application })
         if (cRows.length > 0) metaSections.push({ heading: 'Container', rows: cRows })
-        const pRows: { label: string; value: string }[] = []
-        if (meta?.general?.writing_application) {
-          const app = meta.general.writing_application
-          const isCamera = !app.toLowerCase().includes('lavf') && !app.toLowerCase().includes('ffmpeg')
-          if (isCamera) pRows.push({ label: 'Device', value: app })
-        }
-        if (details?.device_generation_history && details.device_generation_history.length > 0) {
-          const firstGen = details.device_generation_history[0]
-          if (firstGen.camera_type === 'Device Camera') {
-            pRows.push({ label: 'Camera Make', value: firstGen.brand })
-            pRows.push({ label: 'Camera Model', value: firstGen.model })
-          }
-        }
-        if (pRows.length > 0) metaSections.push({ heading: 'Provenance', rows: pRows })
 
         if (metaSections.length === 0) {
           return '<div style="flex:0.6;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px"><div style="font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">Extracted Metadata</div><div style="font-size:9px;color:#6b7280">No metadata available</div></div>'
@@ -439,12 +425,12 @@ function generateReportHTML(caseData: Case): string {
     <!-- Footer -->
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #f3f4f6;">
       <span style="max-width: 55%; line-height: 1.4;">This assessment is probabilistic and should be interpreted in context. It does not constitute legal advice or a conclusive determination of authenticity.</span>
-      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL v2</span>
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
     </div>
 
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 1 of 3</span>
+      <span>Page 1 of 1</span>
     </div>
   </div>
 </body>
