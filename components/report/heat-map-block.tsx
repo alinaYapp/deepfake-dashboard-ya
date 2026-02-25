@@ -63,13 +63,12 @@ function frameScoreColor(s: number) {
   return "#B45309"
 }
 
-function getRegionDescriptions(pixelAnalysis?: PixelAnalysisResult[], voiceResult?: { result?: string }) {
+function getRegionDescriptions(pixelAnalysis?: PixelAnalysisResult[]) {
   const d: { region: string; detail: string }[] = []
   const face = pixelAnalysis?.find((p) => p.type === "face_manipulation")
   const eye = pixelAnalysis?.find((p) => p.type === "eye_gaze_manipulation")
   if (face?.result === "suspicious") d.push({ region: "Facial region", detail: "Unnatural blending detected at jaw line boundary" })
   if (eye?.result === "suspicious") d.push({ region: "Eye gaze trajectory", detail: "Inconsistent with natural movement patterns" })
-  if (voiceResult?.result?.toLowerCase() === "suspicious") d.push({ region: "Audio-visual synchronization", detail: "0.3s delay detected between lip movement and audio" })
   if (face?.result === "suspicious") d.push({ region: "Lighting analysis", detail: "Shadow direction mismatch across facial planes" })
   return d
 }
@@ -130,8 +129,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
   const topFrames = isVideo ? deriveTopFrames(overallScore, isSuspicious) : []
   const maxScore = topFrames.length > 0 ? topFrames[0].score : overallScore
   const avgScore = topFrames.length > 0 ? topFrames.reduce((a, f) => a + f.score, 0) / topFrames.length : overallScore
-  const voiceResult = details?.voice_analysis?.[0]
-  const regionDescs = isSuspicious ? getRegionDescriptions(pixelAnalysis, voiceResult) : []
+  const regionDescs = isSuspicious ? getRegionDescriptions(pixelAnalysis) : []
 
   const meta = details?.decoded_metadata
   const metaItems: { label: string; value: string }[] = []

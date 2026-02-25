@@ -35,42 +35,28 @@ function generateReportHTML(caseData: Case): string {
   const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
   const voiceResult = details?.voice_analysis?.[0]
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
-  const metrics: Metric[] = []
-  if (faceResult) {
-    metrics.push({
-      label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: faceResult.result === "suspicious" ? "alert" : "ok",
-      iconType: "face",
-    })
-  }
-  if (voiceResult) {
-    const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
-    metrics.push({
-      label: "Voice Analysis",
-      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: voiceSus ? "alert" : "ok",
-      iconType: "voice",
-    })
-  }
-  metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, iconType: "forensic" }
-    : { label: "Forensic Flags", value: "None", status: "ok" as const, iconType: "forensic" }
-  )
   const hasIntegrityData = !!details?.structural_consistency
-  const hasMetadata = !!details?.decoded_metadata
-  metrics.push({
-    label: "File Metadata",
-    value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
-    status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
-    iconType: "file",
-  })
+
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
+  const scoreAlert = caseData.score >= 0.7
+  const metadataAlert = hasIntegrityData ? !integrityPassed : false
+  const metrics: Metric[] = [
+    {
+      label: "Overall Score",
+      value: `${confidencePercent}%`,
+      status: scoreAlert ? "alert" : "ok",
+      iconType: "forensic",
+    },
+    {
+      label: "File Metadata",
+      value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : "Extracted",
+      status: metadataAlert ? "alert" : "ok",
+      iconType: "file",
+    },
+  ]
 
   // Icon SVGs for PDF
   const iconSvgs: Record<string, (color: string) => string> = {
-    face: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="4" stroke="${c}" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="${c}" stroke-width="1.5"/></svg>`,
-    voice: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" stroke="${c}" stroke-width="1.5"/><path d="M3 7c0 2.8 2.2 5 5 5s5-2.2 5-5" stroke="${c}" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="${c}" stroke-width="1.5"/></svg>`,
     forensic: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z" stroke="${c}" stroke-width="1.5"/><path d="M8 8V5" stroke="${c}" stroke-width="1.5"/><circle cx="8" cy="10" r="0.8" fill="${c}"/></svg>`,
     file: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1" stroke="${c}" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="${c}" stroke-width="1"/><line x1="5" y1="7.5" x2="11" y2="7.5" stroke="${c}" stroke-width="1"/><line x1="5" y1="10" x2="9" y2="10" stroke="${c}" stroke-width="1"/></svg>`,
   }
@@ -80,7 +66,6 @@ function generateReportHTML(caseData: Case): string {
   if (isSuspicious) {
     if (faceResult?.result === "suspicious") regionDescs.push({ region: "Facial region", detail: "Unnatural blending detected at jaw line boundary" })
     if (eyeResult?.result === "suspicious") regionDescs.push({ region: "Eye gaze trajectory", detail: "Inconsistent with natural movement patterns" })
-    if (voiceResult?.result?.toLowerCase() === "suspicious") regionDescs.push({ region: "Audio-visual sync", detail: "Temporal offset detected in lip movement correlation" })
     if (faceResult?.result === "suspicious") regionDescs.push({ region: "Lighting analysis", detail: "Shadow direction mismatch across facial planes" })
   }
 
@@ -171,9 +156,6 @@ function generateReportHTML(caseData: Case): string {
     if (eyeResult?.result === "suspicious") {
       keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
     }
-    if (voiceResult?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Audio characteristics suggest the presence of patterns associated with voice synthesis")
-    }
     if (criticalCount > 0) {
       keyFindings.push("File metadata exhibits structural similarities to known AI generation tool signatures")
     }
@@ -182,9 +164,6 @@ function generateReportHTML(caseData: Case): string {
     }
   } else {
     keyFindings.push("No indicators of facial manipulation were observed in this analysis")
-    if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
-      keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
-    }
     keyFindings.push("File structure is consistent with known authentic capture device signatures")
     if (integrityPassed) {
       keyFindings.push("File metadata and container structure are consistent with expected encoding standards")
@@ -249,13 +228,9 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- 2. Analysis Summary (3 cards) -->
+    <!-- 2. Analysis Summary (2 cards) -->
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      ${[
-        { label: 'Face Analysis', value: faceResult?.result === 'suspicious' ? ((faceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: faceResult?.result === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.face },
-        { label: 'Voice Analysis', value: voiceResult?.result?.toLowerCase() === 'suspicious' ? ((voiceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: voiceResult?.result?.toLowerCase() === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.voice },
-        { label: 'File Metadata', value: hasIntegrityData ? (integrityPassed ? 'Consistent' : 'Concerns') : hasMetadata ? 'Extracted' : 'Limited', status: hasIntegrityData ? (integrityPassed ? 'ok' : 'alert') : 'ok', icon: iconSvgs.file },
-      ].map((card) => {
+      ${metrics.map((card) => {
         const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
         const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'
         const cbd = card.status === 'alert' ? '#FECACA' : '#BBF7D0'
@@ -263,7 +238,7 @@ function generateReportHTML(caseData: Case): string {
           ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" stroke-width="1"/><path d="M5 8l2 2 4-4" stroke="#15803D" stroke-width="1.5" fill="none"/></svg>'
           : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/></svg>'
         return `<div style="flex: 1; padding: 7px 10px; background: ${cb}; border: 1px solid ${cbd}; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
-          ${card.icon(cc)}
+          ${iconSvgs[card.iconType](cc)}
           <div style="flex: 1;">
             <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${card.label}</div>
             <div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>
