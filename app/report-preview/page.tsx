@@ -1,83 +1,92 @@
 "use client"
 
-import { mockCases } from "@/lib/mock-data"
-import { ReportPageOne } from "@/components/report/report-page-one"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { DeepfakeReportPage } from "@/components/report/deepfake-report"
+import {
+  mockSuspiciousReport,
+  mockAuthenticReport,
+  mockUncertainReport,
+} from "@/lib/deepfake-report-types"
 
-const casesWithDetails = mockCases.filter((c) => c.details)
+const reports = [
+  { label: "Suspicious", data: mockSuspiciousReport },
+  { label: "Authentic", data: mockAuthenticReport },
+  { label: "Uncertain", data: mockUncertainReport },
+]
 
 export default function ReportPreviewPage() {
-  const [caseIndex, setCaseIndex] = useState(0)
-  const [isEnterprise, setIsEnterprise] = useState(true)
-  const currentCase = casesWithDetails[caseIndex]
+  const [activeIndex, setActiveIndex] = useState(0)
+  const currentReport = reports[activeIndex].data
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col items-center py-10 gap-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCaseIndex((prev) => Math.max(0, prev - 1))}
-          disabled={caseIndex === 0}
-          className="bg-[#ffffff] text-[#1a1a1a] border-[#d1d5db]"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm font-medium text-[#374151]">
-          Case {caseIndex + 1} of {casesWithDetails.length} &mdash;{" "}
-          <code className="font-mono text-xs text-[#6b7280]">{currentCase.id}</code>{" "}
-          <span
-            className={
-              currentCase.verdict === "fake"
-                ? "text-[#dc2626]"
-                : currentCase.verdict === "real"
-                  ? "text-[#16a34a]"
-                  : "text-[#d97706]"
-            }
-          >
-            ({currentCase.verdict})
-          </span>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCaseIndex((prev) => Math.min(casesWithDetails.length - 1, prev + 1))}
-          disabled={caseIndex === casesWithDetails.length - 1}
-          className="bg-[#ffffff] text-[#1a1a1a] border-[#d1d5db]"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-
-        <div className="w-px h-6 bg-[#d1d5db] mx-1" />
-
-        <Button
-          variant={isEnterprise ? "default" : "outline"}
-          size="sm"
-          onClick={() => setIsEnterprise(true)}
-          className={isEnterprise ? "bg-[#4A7BF7] text-[#ffffff] hover:bg-[#3b6ae0]" : "bg-[#ffffff] text-[#374151] border-[#d1d5db]"}
-        >
-          Enterprise
-        </Button>
-        <Button
-          variant={!isEnterprise ? "default" : "outline"}
-          size="sm"
-          onClick={() => setIsEnterprise(false)}
-          className={!isEnterprise ? "bg-[#4A7BF7] text-[#ffffff] hover:bg-[#3b6ae0]" : "bg-[#ffffff] text-[#374151] border-[#d1d5db]"}
-        >
-          Default
-        </Button>
-      </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f1f3f5",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "40px 0 60px",
+        gap: "24px",
+      }}
+    >
+      {/* Toggle toolbar — hidden when printing */}
+      <style>{`@media print { .report-toggle-toolbar { display: none !important; } }`}</style>
       <div
-        className="bg-[#ffffff] shadow-lg"
+        className="report-toggle-toolbar"
         style={{
-          width: "794px",
-          minHeight: "1123px",
-          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          padding: "4px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
         }}
       >
-        <ReportPageOne caseData={currentCase} isEnterprise={isEnterprise} />
+        {reports.map((r, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveIndex(i)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: activeIndex === i ? 600 : 400,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              background: activeIndex === i ? "#4A7BF7" : "transparent",
+              color: activeIndex === i ? "#ffffff" : "#6b7280",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {r.label}
+          </button>
+        ))}
+        <span
+          style={{
+            marginLeft: "8px",
+            padding: "0 12px",
+            fontSize: "12px",
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: "#9ca3af",
+            borderLeft: "1px solid #e5e7eb",
+          }}
+        >
+          {currentReport.report_id}
+        </span>
+      </div>
+
+      {/* Report document */}
+      <div
+        style={{
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          borderRadius: "2px",
+        }}
+      >
+        <DeepfakeReportPage report={currentReport} />
       </div>
     </div>
   )
