@@ -76,11 +76,7 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
 
       <div style={{ display: "flex", gap: "14px" }}>
         <div style={{ flex: 1 }}>
-          <ForensicFlags
-            errors={report.errors}
-            provenance={report.video_metadata.provenance}
-            container={report.video_metadata.container}
-          />
+          <ForensicFlags errors={report.errors} />
         </div>
         <div style={{ flex: 1 }}>
           <ExtractedMetadata videoMetadata={report.video_metadata} />
