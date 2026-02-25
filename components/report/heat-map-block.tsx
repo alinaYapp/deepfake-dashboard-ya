@@ -138,7 +138,6 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
     if (meta.general.format) metaItems.push({ label: "Format", value: meta.general.format })
     if (meta.general.overall_bit_rate) metaItems.push({ label: "Bitrate", value: meta.general.overall_bit_rate })
     if (meta.general.writing_application) metaItems.push({ label: "Encoder", value: meta.general.writing_application })
-    if (meta.general.file_size) metaItems.push({ label: "File Size", value: meta.general.file_size })
   }
   if (meta?.video) {
     if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.format ? `${meta.video.format} (${meta.video.codec_id})` : meta.video.codec_id })
@@ -149,9 +148,6 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
     if (meta.audio.sampling_rate) metaItems.push({ label: "Sample Rate", value: meta.audio.sampling_rate })
     if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
   }
-
-  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
-  const hasIntegrityData = !!details?.structural_consistency
 
   return (
     <div style={{ marginBottom: "6px" }}>
@@ -298,7 +294,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
                     Video converter/encoder signatures detected
                   </div>
                   <div style={{ fontSize: "8px", color: "#78350F", lineHeight: "1.4", marginTop: "2px" }}>
-                    FFmpeg, Bluesky
+                    {details?.decoded_metadata?.general?.writing_application || "Suspicious encoding metadata detected"}
                   </div>
                 </div>
               </div>
@@ -341,19 +337,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
           ) : (
             <div style={{ fontSize: "9px", color: "#6b7280" }}>No metadata available</div>
           )}
-          {hasIntegrityData && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: "5px",
-              marginTop: "6px", padding: "4px 6px", borderRadius: "4px",
-              background: integrityPassed ? "#F0FDF4" : "#FEF2F2",
-              border: `1px solid ${integrityPassed ? "#BBF7D0" : "#FECACA"}`,
-            }}>
-              <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: integrityPassed ? "#22C55E" : "#EF4444" }} />
-              <span style={{ fontSize: "7.5px", fontWeight: 500, color: integrityPassed ? "#15803D" : "#B91C1C" }}>
-                File integrity: {integrityPassed ? "All structural checks passed" : "Integrity concerns noted"}
-              </span>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

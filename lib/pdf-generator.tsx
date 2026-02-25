@@ -26,20 +26,21 @@ function generateReportHTML(caseData: Case): string {
   const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
   const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
 
-  // File integrity (needed early for metrics)
-  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
-
   // Key metrics for Page 1 (max 4, plain language)
   const totalFlags = criticalCount + suspectCount
   const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
   const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
-  const voiceResult = details?.voice_analysis?.[0]
 
-  const hasIntegrityData = !!details?.structural_consistency
+  // Check metadata suspicion from signature data
+  const sigCategory = details?.verify_result?.structure_signature_result?.signature_category
+  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
+  const hasEncoderSignature = details?.file_signature_structure?.some(
+    (s: { name?: string }) => s.name?.toLowerCase().includes("converter") || s.name?.toLowerCase().includes("ffmpeg") || s.name?.toLowerCase().includes("encoder")
+  )
 
   type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
   const scoreAlert = caseData.score >= 0.7
-  const metadataAlert = hasIntegrityData ? !integrityPassed : false
+  const metadataAlert = hasSuspiciousSignature || hasEncoderSignature || false
   const metrics: Metric[] = [
     {
       label: "Overall Score",
@@ -49,7 +50,7 @@ function generateReportHTML(caseData: Case): string {
     },
     {
       label: "File Metadata",
-      value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : "Extracted",
+      value: metadataAlert ? "Suspicious" : "Consistent",
       status: metadataAlert ? "alert" : "ok",
       iconType: "file",
     },
@@ -134,7 +135,9 @@ function generateReportHTML(caseData: Case): string {
     if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
   }
 
-  // File integrity check (integrityPassed defined earlier)
+  // File integrity check (for key findings only, not shown in UI)
+  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
+  const hasIntegrityData = !!details?.structural_consistency
 
   // Waveform SVG for audio
   const waveformBars = Array.from({ length: 48 }).map((_, i) => {
@@ -221,10 +224,7 @@ function generateReportHTML(caseData: Case): string {
           <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B45309; display: inline-block;"></span>40-69% Uncertain</span>
           <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B91C1C; display: inline-block;"></span>70-100% Suspicious</span>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
-          <span>Engine v${details?.project_info?.verify_version || '2.374'}</span>
-        </div>
+        <span style="font-family: 'IBM Plex Mono', monospace;">Engine v${details?.project_info?.verify_version || '2.374'}</span>
       </div>
     </div>
 
@@ -364,7 +364,7 @@ function generateReportHTML(caseData: Case): string {
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>
             <div>
               <div style="font-size: 9px; font-weight: 700; color: #92400E; line-height: 1.3;">Video converter/encoder signatures detected</div>
-              <div style="font-size: 8px; color: #78350F; line-height: 1.4; margin-top: 2px;">FFmpeg, Bluesky</div>
+              <div style="font-size: 8px; color: #78350F; line-height: 1.4; margin-top: 2px;">${meta?.general?.writing_application || 'Suspicious encoding metadata detected'}</div>
             </div>
           </div>
         </div>
@@ -385,11 +385,7 @@ function generateReportHTML(caseData: Case): string {
           <span style="font-size: 8px; color: #6b7280;">${m.label}</span>
           <span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
         </div>`).join('') : '<div style="font-size: 9px; color: #6b7280;">No metadata available</div>'}
-        ${hasIntegrityData ? `
-        <div style="display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
-          <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
-          <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
-        </div>` : ''}
+
       </div>
     </div>
 

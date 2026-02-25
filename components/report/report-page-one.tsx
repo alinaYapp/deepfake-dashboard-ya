@@ -1,4 +1,4 @@
-import { type Case, formatBytes, formatDate } from "@/lib/mock-data"
+import { type Case, formatDate } from "@/lib/mock-data"
 import { HeatMapBlock } from "./heat-map-block"
 
 interface ReportPageOneProps { caseData: Case; isEnterprise?: boolean }
@@ -9,17 +9,23 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
-  const integrityOk = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
-  const hasIntegrityData = !!details?.structural_consistency
   const verdictColor = isSuspicious ? "#B91C1C" : isUncertain ? "#B45309" : "#15803D"
   const verdictLabel = isSuspicious ? "Suspicious" : isUncertain ? "Uncertain" : "Authentic"
   const scoreAlert = caseData.score >= 0.7
-  const metadataAlert = hasIntegrityData ? !integrityOk : false
+
+  // Check metadata suspicion: signature_category "AI Generator" or file_signature_structure with converter/encoder matches
+  const sigCategory = details?.verify_result?.structure_signature_result?.signature_category
+  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
+  const hasEncoderSignature = details?.file_signature_structure?.some(
+    (s) => s.name?.toLowerCase().includes("converter") || s.name?.toLowerCase().includes("ffmpeg") || s.name?.toLowerCase().includes("encoder")
+  )
+  const metadataAlert = hasSuspiciousSignature || hasEncoderSignature || false
+  const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
 
   const cards = [
     { label: "Overall Score", value: `${confidencePercent}%`, alert: scoreAlert,
       icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2.5 5.5v7L9 16.5l6.5-4v-7L9 1.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9 9V5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="11.5" r="0.8" fill="currentColor"/></svg>' },
-    { label: "File Metadata", value: hasIntegrityData ? (integrityOk ? "Consistent" : "Concerns") : "Extracted", alert: metadataAlert,
+    { label: "File Metadata", value: metadataValue, alert: metadataAlert,
       icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3.5" y="1.5" width="11" height="15" rx="1.5" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="5.5" x2="12" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="6" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="1"/><line x1="6" y1="10.5" x2="10" y2="10.5" stroke="currentColor" stroke-width="1"/></svg>' },
   ]
 
@@ -64,10 +70,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
               <span key={x.l} style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "5px", height: "5px", borderRadius: "50%", background: x.c, display: "inline-block", flexShrink: 0 }} />{x.l}</span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <span>{caseData.content_type} &middot; {formatBytes(caseData.file_size_bytes)}</span>
-            <span>Engine v{details?.project_info?.verify_version || "2.374"}</span>
-          </div>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Engine v{details?.project_info?.verify_version || "2.374"}</span>
         </div>
       </div>
 
