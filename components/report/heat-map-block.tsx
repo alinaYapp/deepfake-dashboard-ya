@@ -133,7 +133,7 @@ interface FlagEntry {
 function buildForensicFlags(isSuspicious: boolean, details?: CaseDetails): FlagEntry[] {
   const encoderVal = details?.decoded_metadata?.general?.writing_application || ""
   const sigCat = details?.structural_analysis?.signature_category || ""
-  const isProSw = sigCat === "Professional Software" || sigCat === "Uncategorized"
+  const isProSw = sigCat === "Professional Software"
   const isSusEncoder = encoderVal.toLowerCase().includes("ffmpeg") || encoderVal.toLowerCase().includes("lavf") || encoderVal.toLowerCase().includes("converter")
 
   if (!isSuspicious && !isProSw && !isSusEncoder) {
@@ -338,7 +338,7 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
 
         {/* RIGHT: Extracted Metadata (grouped) */}
         {metaGroups.length > 0 ? (
-          <div style={{ flex: "0.6", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
+          <div style={{ flex: "0.6", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: "6px" }}>
             <div style={{ padding: "6px 10px 3px", fontSize: "9px", fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.3px" }}>Extracted Metadata</div>
             {metaGroups.map((section, si) => (
               <div key={section.heading}>

@@ -34,7 +34,7 @@ function generateReportHTML(caseData: Case): string {
 
   // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
   const sigCategory = details?.structural_analysis?.signature_category
-  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
+  const hasSuspiciousSignature = sigCategory === "AI Generator"
   const encoder = details?.decoded_metadata?.general?.writing_application
   const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter")))
 
@@ -187,7 +187,7 @@ function generateReportHTML(caseData: Case): string {
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
-    .page { width: 794px; height: 1123px; padding: 28px 40px 40px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
+    .page { width: 794px; min-height: 1123px; padding: 28px 40px 40px; position: relative; background: white; box-sizing: border-box; }
     .page-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
@@ -355,7 +355,7 @@ function generateReportHTML(caseData: Case): string {
           const pdfFlags: { type: string; title: string; description: string }[] = []
           const pdfSigCat = details?.structural_analysis?.signature_category
           const pdfEncoder = meta?.general?.writing_application
-          const pdfIsProSw = pdfSigCat === 'Professional Software' || pdfSigCat === 'Uncategorized'
+          const pdfIsProSw = pdfSigCat === 'Professional Software'
           const pdfHasSusEnc = !!(pdfEncoder && (pdfEncoder.toLowerCase().includes('ffmpeg') || pdfEncoder.toLowerCase().includes('lavf') || pdfEncoder.toLowerCase().includes('converter')))
 
           if (isSuspicious) {
@@ -407,7 +407,7 @@ function generateReportHTML(caseData: Case): string {
         if (metaSections.length === 0) {
           return '<div style="flex:0.6;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px"><div style="font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">Extracted Metadata</div><div style="font-size:9px;color:#6b7280">No metadata available</div></div>'
         }
-        return '<div style="flex:0.6;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">' +
+        return '<div style="flex:0.6;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px">' +
           '<div style="padding:6px 10px 3px;font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px">Extracted Metadata</div>' +
           metaSections.map((sec, si) =>
             '<div style="padding:4px 10px 2px;font-size:7.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.6px">' + sec.heading + '</div>' +

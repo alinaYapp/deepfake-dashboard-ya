@@ -15,7 +15,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
   // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
   const sigCategory = details?.structural_analysis?.signature_category
-  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Uncategorized"
+  const hasSuspiciousSignature = sigCategory === "AI Generator"
   const encoder = details?.decoded_metadata?.general?.writing_application
   const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter")))
   const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
@@ -29,7 +29,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   ]
 
   return (
-    <div style={{ width: "794px", height: "1123px", padding: "28px 40px 40px", position: "relative", background: "#ffffff", overflow: "hidden", boxSizing: "border-box", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a1a1a", fontSize: "11px", lineHeight: "1.5" }}>
+    <div style={{ width: "794px", minHeight: "1123px", padding: "28px 40px 40px", position: "relative", background: "#ffffff", boxSizing: "border-box", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a1a1a", fontSize: "11px", lineHeight: "1.5" }}>
       {/* HEADER */}
       <div style={{ marginBottom: "8px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
