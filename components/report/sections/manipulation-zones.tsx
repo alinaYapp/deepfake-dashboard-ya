@@ -4,39 +4,47 @@ interface ManipulationZonesProps {
   heatmapFrame: HeatmapFrame
 }
 
-function HeatmapPlaceholderSvg({ width, height }: { width: number; height: number }) {
-  const vw = 200
-  const vh = 150
+function HeatmapPlaceholder() {
   return (
     <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${vw} ${vh}`}
+      width="280"
+      height="210"
+      viewBox="0 0 280 210"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ borderRadius: "4px", display: "block" }}
+      style={{ display: "block" }}
     >
       <defs>
         <linearGradient id="hBg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#374151" />
           <stop offset="100%" stopColor="#1f2937" />
         </linearGradient>
-        <radialGradient id="heatOverlay" cx="50%" cy="40%" r="45%">
-          <stop offset="0%" stopColor="rgba(220,38,38,0.5)" />
-          <stop offset="40%" stopColor="rgba(234,88,12,0.25)" />
-          <stop offset="80%" stopColor="rgba(250,204,21,0.08)" />
+        <radialGradient id="heatHigh" cx="50%" cy="35%" r="30%">
+          <stop offset="0%" stopColor="rgba(220,38,38,0.55)" />
+          <stop offset="100%" stopColor="rgba(220,38,38,0)" />
+        </radialGradient>
+        <radialGradient id="heatMed" cx="38%" cy="50%" r="22%">
+          <stop offset="0%" stopColor="rgba(234,88,12,0.35)" />
+          <stop offset="100%" stopColor="rgba(234,88,12,0)" />
+        </radialGradient>
+        <radialGradient id="heatLow" cx="62%" cy="55%" r="18%">
+          <stop offset="0%" stopColor="rgba(250,204,21,0.2)" />
           <stop offset="100%" stopColor="rgba(250,204,21,0)" />
         </radialGradient>
       </defs>
-      <rect width={vw} height={vh} fill="url(#hBg)" />
-      <ellipse cx={vw / 2} cy={56} rx="28" ry="32" fill="#4b5563" />
-      <ellipse cx={vw / 2} cy={135} rx="48" ry="36" fill="#4b5563" />
-      <line x1="0" y1="50" x2={vw} y2="50" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
-      <line x1="0" y1="100" x2={vw} y2="100" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
-      <line x1={vw / 3} y1="0" x2={vw / 3} y2={vh} stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
-      <line x1={(vw * 2) / 3} y1="0" x2={(vw * 2) / 3} y2={vh} stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
-      {/* Heatmap overlay */}
-      <ellipse cx={vw / 2} cy="60" rx="48" ry="52" fill="url(#heatOverlay)" />
+      <rect width="280" height="210" fill="url(#hBg)" />
+      {/* Silhouette */}
+      <ellipse cx="140" cy="72" rx="36" ry="42" fill="#4b5563" />
+      <ellipse cx="140" cy="175" rx="60" ry="48" fill="#4b5563" />
+      {/* Grid */}
+      <line x1="0" y1="70" x2="280" y2="70" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
+      <line x1="0" y1="140" x2="280" y2="140" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
+      <line x1="93" y1="0" x2="93" y2="210" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
+      <line x1="187" y1="0" x2="187" y2="210" stroke="#6b7280" strokeWidth="0.3" strokeDasharray="4,4" />
+      {/* Heatmap overlays */}
+      <ellipse cx="140" cy="72" rx="60" ry="56" fill="url(#heatHigh)" />
+      <ellipse cx="108" cy="100" rx="40" ry="36" fill="url(#heatMed)" />
+      <ellipse cx="172" cy="108" rx="32" ry="28" fill="url(#heatLow)" />
     </svg>
   )
 }
@@ -57,7 +65,7 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
       {/* Header */}
       <div
         style={{
-          padding: "4px 12px",
+          padding: "5px 12px",
           background: "#FEE2E2",
           borderBottom: "1px solid #FECACA",
           display: "flex",
@@ -67,7 +75,7 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
       >
         <span
           style={{
-            fontSize: "9px",
+            fontSize: "10px",
             fontWeight: 700,
             color: "#991B1B",
             textTransform: "uppercase",
@@ -76,13 +84,13 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
         >
           Manipulation Zones Detected
         </span>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "12px" }}>
           {[
             { label: "High", color: "#DC2626", bg: "rgba(220,38,38,0.2)" },
             { label: "Medium", color: "#EA580C", bg: "rgba(234,88,12,0.15)" },
             { label: "Low", color: "#CA8A04", bg: "rgba(202,138,4,0.15)" },
           ].map((l) => (
-            <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+            <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               <div
                 style={{
                   width: "7px",
@@ -92,7 +100,7 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
                   border: `1.5px solid ${l.color}`,
                 }}
               />
-              <span style={{ fontSize: "7px", color: l.color, fontWeight: 600 }}>{l.label}</span>
+              <span style={{ fontSize: "8px", color: l.color, fontWeight: 600 }}>{l.label}</span>
             </div>
           ))}
         </div>
@@ -101,7 +109,7 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
       {/* Heatmap image */}
       <div
         style={{
-          padding: "10px 12px",
+          padding: "12px 14px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -123,37 +131,40 @@ export function ManipulationZones({ heatmapFrame }: ManipulationZonesProps) {
               crossOrigin="anonymous"
             />
           ) : (
-            <HeatmapPlaceholderSvg width={280} height={210} />
+            <HeatmapPlaceholder />
           )}
           <div
             style={{
               position: "absolute",
-              top: "5px",
-              left: "5px",
+              top: "6px",
+              left: "6px",
               background: "rgba(220,38,38,0.9)",
               color: "#fff",
               fontSize: "7px",
               fontWeight: 700,
-              padding: "2px 7px",
+              padding: "3px 8px",
               borderRadius: "3px",
               textTransform: "uppercase",
+              letterSpacing: "0.3px",
+              fontFamily: "'IBM Plex Mono', monospace",
             }}
           >
-            Frame {frame.frame_index} - Highest Score
+            {"Frame "}
+            {frame.frame_index}
+            {" - Highest Score"}
           </div>
         </div>
         <div
           style={{
-            fontSize: "8px",
+            fontSize: "8.5px",
             color: "#7F1D1D",
-            marginTop: "6px",
+            marginTop: "8px",
             textAlign: "center",
-            lineHeight: "1.4",
-            maxWidth: "420px",
+            lineHeight: "1.5",
+            maxWidth: "440px",
           }}
         >
-          Analysis detected anomalies in facial regions with varying confidence levels across the
-          frame
+          Analysis detected anomalies in facial regions with varying confidence levels across the frame
         </div>
       </div>
     </div>

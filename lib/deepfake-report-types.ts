@@ -61,17 +61,21 @@ export interface DeepfakeReport {
 }
 
 // ── Verdict derivation ────────────────────────────────────────────
+// Spec:
+// errors empty → "AUTHENTIC" (green)
+// errors contains only "SuspiciousMetadata" → "UNCERTAIN" (amber)
+// errors contains "DeepfakeDetected" or "MetadataAiGeneratorDetected" → "SUSPICIOUS" (red)
+// errors contains "MetadataProfessionalSoftware" (without deepfake) → "UNCERTAIN" (amber)
 
 export type Verdict = "AUTHENTIC" | "UNCERTAIN" | "SUSPICIOUS"
 
-export function deriveVerdict(report: DeepfakeReport): Verdict {
-  if (report.errors.includes("DeepfakeDetected") || report.overall_score >= 0.7) {
+export function deriveVerdict(errors: ErrorCode[]): Verdict {
+  if (errors.length === 0) return "AUTHENTIC"
+  if (errors.includes("DeepfakeDetected") || errors.includes("MetadataAiGeneratorDetected")) {
     return "SUSPICIOUS"
   }
-  if (report.errors.length > 0 && report.overall_score < 0.7) {
-    return "UNCERTAIN"
-  }
-  return "AUTHENTIC"
+  // Remaining: MetadataProfessionalSoftware and/or SuspiciousMetadata
+  return "UNCERTAIN"
 }
 
 export function verdictColor(verdict: Verdict): string {
@@ -118,25 +122,8 @@ export function verdictBadgeBg(verdict: Verdict): string {
   }
 }
 
-// ── Formatting helpers ────────────────────────────────────────────
-
-export function formatTimestamp(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  const whole = Math.floor(secs)
-  const frac = Math.round((secs - whole) * 10)
-  return `${String(mins).padStart(2, "0")}:${String(whole).padStart(2, "0")}.${frac}`
-}
-
-export function formatSubmissionDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
+// ── Score color helpers ───────────────────────────────────────────
+// 0-39 green, 40-69 amber, 70-100 red
 
 export function scoreColor(score: number): string {
   if (score >= 0.7) return "#EF4444"
@@ -148,6 +135,32 @@ export function scoreDarkColor(score: number): string {
   if (score >= 0.7) return "#B91C1C"
   if (score >= 0.4) return "#B45309"
   return "#15803D"
+}
+
+// ── Formatting helpers ────────────────────────────────────────────
+
+export function formatTimestamp(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  const whole = Math.floor(secs)
+  const frac = Math.round((secs - whole) * 10)
+  return `${String(mins).padStart(2, "0")}:${String(whole).padStart(2, "0")}.${frac}`
+}
+
+export function formatSubmissionDate(iso: string): string {
+  const d = new Date(iso)
+  const months = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December",
+  ]
+  const month = months[d.getUTCMonth()]
+  const day = d.getUTCDate()
+  const year = d.getUTCFullYear()
+  const h = d.getUTCHours()
+  const m = d.getUTCMinutes()
+  const ampm = h >= 12 ? "PM" : "AM"
+  const hour12 = h % 12 || 12
+  return `${month} ${day}, ${year}, ${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`
 }
 
 // ── Mock datasets ─────────────────────────────────────────────────
@@ -208,6 +221,31 @@ export const mockAuthenticReport: DeepfakeReport = {
       camera_make: "Apple",
       camera_model: "iPhone 15 Pro",
       creation_date: "2025-02-11T14:10:00Z",
+    },
+  },
+}
+
+export const mockUncertainReport: DeepfakeReport = {
+  report_id: "#C3D4E5F6A1B2",
+  user_name: "app_usr_33333",
+  submission_date: "2025-02-12T11:00:00Z",
+  engine_version: "v2.374",
+  errors: ["MetadataProfessionalSoftware"],
+  overall_score: 0.28,
+  video_metadata: {
+    parsed_video: {
+      codec: "H.265 (hevc)",
+      resolution: "1920 x 1080 pixels",
+      frame_rate: 60.0,
+      bitrate: "8 200 kb/s",
+      duration: "45 s 120 ms",
+    },
+    container: {
+      format: "MPEG-4 (Base Media)",
+      encoder: "Lavf60.3.100",
+    },
+    provenance: {
+      software: "Adobe After Effects 2024",
     },
   },
 }

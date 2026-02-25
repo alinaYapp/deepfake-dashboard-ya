@@ -1,15 +1,10 @@
 import {
   type DeepfakeReport,
-  type TopScoreFrame,
-  type ErrorCode,
   deriveVerdict,
   verdictColor,
   verdictDarkColor,
   verdictBg,
   verdictBadgeBg,
-  formatTimestamp,
-  formatSubmissionDate,
-  scoreDarkColor,
 } from "@/lib/deepfake-report-types"
 import { ReportHeader } from "./sections/report-header"
 import { AnalysisSummaryBar } from "./sections/analysis-summary-bar"
@@ -24,7 +19,7 @@ interface DeepfakeReportPageProps {
 }
 
 export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
-  const verdict = deriveVerdict(report)
+  const verdict = deriveVerdict(report.errors)
   const vColor = verdictColor(verdict)
   const vDarkColor = verdictDarkColor(verdict)
   const vBg = verdictBg(verdict)
@@ -39,11 +34,9 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
       e === "SuspiciousMetadata"
   )
 
-  // Face analysis: derive from overall_score for the spec
   const faceAlert = hasDeepfake
   const faceValue = faceAlert ? `${confidencePercent}%` : "N/A"
 
-  // Metadata status
   const metadataAlert = hasMetadataErrors
   const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
 
@@ -52,17 +45,16 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
       style={{
         width: "794px",
         minHeight: "1123px",
-        padding: "28px 40px 40px",
+        padding: "28px 40px 60px",
         position: "relative",
         background: "#ffffff",
         boxSizing: "border-box",
-        fontFamily: "'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily: "'IBM Plex Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#1a1a1a",
         fontSize: "11px",
         lineHeight: "1.5",
       }}
     >
-      {/* 1. Header */}
       <ReportHeader
         report={report}
         verdict={verdict}
@@ -73,7 +65,6 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
         confidencePercent={confidencePercent}
       />
 
-      {/* 2. Analysis Summary Bar */}
       <AnalysisSummaryBar
         faceAlert={faceAlert}
         faceValue={faceValue}
@@ -82,27 +73,22 @@ export function DeepfakeReportPage({ report }: DeepfakeReportPageProps) {
         report={report}
       />
 
-      {/* 3. Frame-by-Frame Analysis */}
       {report.top_score_frames && report.top_score_frames.length > 0 && (
         <FrameByFrameAnalysis frames={report.top_score_frames} />
       )}
 
-      {/* 4. Manipulation Zones (Heatmap) */}
       {report.heatmap_frame && (
         <ManipulationZones heatmapFrame={report.heatmap_frame} />
       )}
 
-      {/* 5. Forensic Flags */}
       <ForensicFlags
         errors={report.errors}
         provenance={report.video_metadata.provenance}
         container={report.video_metadata.container}
       />
 
-      {/* 6. Extracted Metadata */}
       <ExtractedMetadata videoMetadata={report.video_metadata} />
 
-      {/* 7. Footer */}
       <ReportFooter />
     </div>
   )

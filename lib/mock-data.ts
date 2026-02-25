@@ -791,10 +791,13 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  const d = new Date(dateString)
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+  const month = months[d.getUTCMonth()]
+  const day = d.getUTCDate()
+  const h = d.getUTCHours()
+  const m = d.getUTCMinutes()
+  const ampm = h >= 12 ? "PM" : "AM"
+  const hour12 = h % 12 || 12
+  return `${month} ${day}, ${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`
 }

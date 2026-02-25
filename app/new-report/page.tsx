@@ -5,12 +5,13 @@ import { DeepfakeReportPage } from "@/components/report/deepfake-report"
 import {
   mockSuspiciousReport,
   mockAuthenticReport,
+  mockUncertainReport,
 } from "@/lib/deepfake-report-types"
-import { Button } from "@/components/ui/button"
 
 const reports = [
-  { label: "Suspicious (Deepfake)", data: mockSuspiciousReport },
-  { label: "Authentic (Clean)", data: mockAuthenticReport },
+  { label: "Suspicious", data: mockSuspiciousReport },
+  { label: "Authentic", data: mockAuthenticReport },
+  { label: "Uncertain", data: mockUncertainReport },
 ]
 
 export default function NewReportPreviewPage() {
@@ -18,33 +19,70 @@ export default function NewReportPreviewPage() {
   const currentReport = reports[activeIndex].data
 
   return (
-    <div className="min-h-screen bg-[#f1f3f5] flex flex-col items-center py-10 gap-6">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f1f3f5",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "40px 0 60px",
+        gap: "24px",
+      }}
+    >
+      {/* Toggle toolbar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "#ffffff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          padding: "4px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        }}
+      >
         {reports.map((r, i) => (
-          <Button
+          <button
             key={i}
-            variant={activeIndex === i ? "default" : "outline"}
-            size="sm"
             onClick={() => setActiveIndex(i)}
-            className={
-              activeIndex === i
-                ? "bg-[#4A7BF7] text-[#ffffff] hover:bg-[#3b6ae0]"
-                : "bg-[#ffffff] text-[#374151] border-[#d1d5db]"
-            }
+            style={{
+              padding: "6px 16px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: activeIndex === i ? 600 : 400,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              background: activeIndex === i ? "#4A7BF7" : "transparent",
+              color: activeIndex === i ? "#ffffff" : "#6b7280",
+              transition: "all 0.15s ease",
+            }}
           >
             {r.label}
-          </Button>
+          </button>
         ))}
-        <span className="text-xs font-mono text-[#6b7280] ml-2">
+        <span
+          style={{
+            marginLeft: "8px",
+            padding: "0 12px",
+            fontSize: "12px",
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: "#9ca3af",
+            borderLeft: "1px solid #e5e7eb",
+          }}
+        >
           {currentReport.report_id}
         </span>
       </div>
 
       {/* Report document */}
       <div
-        className="bg-[#ffffff] shadow-lg"
-        style={{ width: "794px", minHeight: "1123px", position: "relative" }}
+        style={{
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          borderRadius: "2px",
+        }}
       >
         <DeepfakeReportPage report={currentReport} />
       </div>
