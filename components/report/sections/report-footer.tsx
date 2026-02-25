@@ -26,7 +26,7 @@ export function ReportFooter() {
             fontSize: "8px",
           }}
         >
-          CONFIDENTIAL
+          CONFIDENTIAL v2
         </span>
       </div>
 

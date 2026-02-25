@@ -426,7 +426,7 @@ function generateReportHTML(caseData: Case): string {
     <!-- Footer -->
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #f3f4f6;">
       <span style="max-width: 55%; line-height: 1.4;">This assessment is probabilistic and should be interpreted in context. It does not constitute legal advice or a conclusive determination of authenticity.</span>
-      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL v2</span>
     </div>
 
     <div class="page-footer">
