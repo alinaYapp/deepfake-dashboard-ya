@@ -15,9 +15,9 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
 
   // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
   const sigCategory = details?.structural_analysis?.signature_category
-  const hasSuspiciousSignature = sigCategory === "AI Generator"
+  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Professional Software"
   const encoder = details?.decoded_metadata?.general?.writing_application
-  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter")))
+  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter") || encoder.toLowerCase().includes("after effects") || encoder.toLowerCase().includes("davinci") || encoder.toLowerCase().includes("premiere")))
   const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
   const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
 
