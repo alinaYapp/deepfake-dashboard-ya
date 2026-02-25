@@ -9,22 +9,16 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
-  const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
-  const voiceResult = details?.voice_analysis?.[0]
   const integrityOk = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
   const hasIntegrityData = !!details?.structural_consistency
   const verdictColor = isSuspicious ? "#B91C1C" : isUncertain ? "#B45309" : "#15803D"
   const verdictLabel = isSuspicious ? "Suspicious" : isUncertain ? "Uncertain" : "Authentic"
-  const faceConf = faceResult?.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear"
-  const voiceSus = voiceResult?.result?.toLowerCase() === "suspicious"
-  const voiceConf = voiceSus ? `${((voiceResult?.confidence ?? 0) * 100).toFixed(0)}%` : "Clear"
+  const metadataHasErrors = hasIntegrityData && !integrityOk
 
   const cards = [
-    { label: "Face Analysis", value: faceConf, alert: faceResult?.result === "suspicious",
-      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.5"/></svg>' },
-    { label: "Voice Analysis", value: voiceConf, alert: voiceSus,
-      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="7" y="1.5" width="4" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 8c0 3 2.5 5.5 5.5 5.5s5.5-2.5 5.5-5.5" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="13.5" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.5"/></svg>' },
-    { label: "File Metadata", value: hasIntegrityData ? (integrityOk ? "Consistent" : "Concerns") : "Extracted", alert: hasIntegrityData ? !integrityOk : false,
+    { label: "Overall Score", value: `${confidencePercent}%`, alert: isSuspicious,
+      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M9 5v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' },
+    { label: "File Metadata", value: metadataHasErrors ? "Suspicious" : "Consistent", alert: metadataHasErrors,
       icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3.5" y="1.5" width="11" height="15" rx="1.5" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="5.5" x2="12" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="6" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="1"/><line x1="6" y1="10.5" x2="10" y2="10.5" stroke="currentColor" stroke-width="1"/></svg>' },
   ]
 

@@ -29,43 +29,28 @@ function generateReportHTML(caseData: Case): string {
   // File integrity (needed early for metrics)
   const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
 
-  // Key metrics for Page 1 (max 4, plain language)
-  const totalFlags = criticalCount + suspectCount
-  const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
+  // Key metrics for Page 1 — exactly 2 cards: Overall Score + File Metadata
   const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
   const voiceResult = details?.voice_analysis?.[0]
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
-  const metrics: Metric[] = []
-  if (faceResult) {
-    metrics.push({
-      label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: faceResult.result === "suspicious" ? "alert" : "ok",
-      iconType: "face",
-    })
-  }
-  if (voiceResult) {
-    const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
-    metrics.push({
-      label: "Voice Analysis",
-      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: voiceSus ? "alert" : "ok",
-      iconType: "voice",
-    })
-  }
-  metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, iconType: "forensic" }
-    : { label: "Forensic Flags", value: "None", status: "ok" as const, iconType: "forensic" }
-  )
   const hasIntegrityData = !!details?.structural_consistency
-  const hasMetadata = !!details?.decoded_metadata
-  metrics.push({
-    label: "File Metadata",
-    value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
-    status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
-    iconType: "file",
-  })
+  const metadataHasErrors = hasIntegrityData && !integrityPassed
+
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
+  const metrics: Metric[] = [
+    {
+      label: "Overall Score",
+      value: `${confidencePercent}%`,
+      status: isSuspicious ? "alert" : isUncertain ? "warn" : "ok",
+      iconType: "face",
+    },
+    {
+      label: "File Metadata",
+      value: metadataHasErrors ? "Suspicious" : "Consistent",
+      status: metadataHasErrors ? "alert" : "ok",
+      iconType: "file",
+    },
+  ]
 
   // Icon SVGs for PDF
   const iconSvgs: Record<string, (color: string) => string> = {
@@ -249,12 +234,11 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- 2. Analysis Summary (3 cards) -->
+    <!-- 2. Score Overview (2 cards) -->
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
       ${[
-        { label: 'Face Analysis', value: faceResult?.result === 'suspicious' ? ((faceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: faceResult?.result === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.face },
-        { label: 'Voice Analysis', value: voiceResult?.result?.toLowerCase() === 'suspicious' ? ((voiceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: voiceResult?.result?.toLowerCase() === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.voice },
-        { label: 'File Metadata', value: hasIntegrityData ? (integrityPassed ? 'Consistent' : 'Concerns') : hasMetadata ? 'Extracted' : 'Limited', status: hasIntegrityData ? (integrityPassed ? 'ok' : 'alert') : 'ok', icon: iconSvgs.file },
+        { label: 'Overall Score', value: confidencePercent + '%', status: isSuspicious ? 'alert' : isUncertain ? 'warn' : 'ok', icon: iconSvgs.face },
+        { label: 'File Metadata', value: metadataHasErrors ? 'Suspicious' : 'Consistent', status: metadataHasErrors ? 'alert' : 'ok', icon: iconSvgs.file },
       ].map((card) => {
         const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
         const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'

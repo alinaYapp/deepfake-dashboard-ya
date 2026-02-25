@@ -79,7 +79,6 @@ export interface DecodedMetadata {
     format: string
     format_profile: string
     codec_id: string
-    file_size: string
     duration: string
     overall_bit_rate: string
     writing_application: string
@@ -427,7 +426,6 @@ export const mockCases: Case[] = [
           format: "MPEG-4",
           format_profile: "Base Media",
           codec_id: "isom (isom/iso2/avc1/mp41)",
-          file_size: "1.20 MiB",
           duration: "5 s 875 ms",
           overall_bit_rate: "1 720 kb/s",
           writing_application: "Lavf58.76.100",
@@ -640,7 +638,6 @@ export const mockCases: Case[] = [
           format: "MPEG-4",
           format_profile: "Base Media / Version 2",
           codec_id: "isom (isom/iso2/avc1/mp41/qt)",
-          file_size: "1.9 MiB",
           duration: "8 s 234 ms",
           overall_bit_rate: "1 950 kb/s",
           writing_application: "Apple iPhone 14 Pro",

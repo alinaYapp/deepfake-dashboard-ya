@@ -140,7 +140,6 @@ export function HeatMapBlock({ isSuspicious, isEnterprise = true, pixelAnalysis,
     if (meta.general.format) metaItems.push({ label: "Format", value: meta.general.format })
     if (meta.general.overall_bit_rate) metaItems.push({ label: "Bitrate", value: meta.general.overall_bit_rate })
     if (meta.general.writing_application) metaItems.push({ label: "Encoder", value: meta.general.writing_application })
-    if (meta.general.file_size) metaItems.push({ label: "File Size", value: meta.general.file_size })
   }
   if (meta?.video) {
     if (meta.video.codec_id) metaItems.push({ label: "Codec", value: meta.video.format ? `${meta.video.format} (${meta.video.codec_id})` : meta.video.codec_id })
