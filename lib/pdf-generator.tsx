@@ -36,6 +36,11 @@ function generateReportHTML(caseData: Case): string {
   const encoder = details?.decoded_metadata?.general?.writing_application
   const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter") || encoder.toLowerCase().includes("after effects") || encoder.toLowerCase().includes("davinci") || encoder.toLowerCase().includes("premiere")))
 
+  // Verdict styling - must be declared before metrics array
+  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
+  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
+  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
+
   type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string; isVerdict?: boolean }
   const scoreAlert = caseData.score >= 0.7
   const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
@@ -173,10 +178,7 @@ function generateReportHTML(caseData: Case): string {
     }
   }
 
-  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
-  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
   const verdictBorder = isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'
-  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
 
   return `<!DOCTYPE html>
 <html>
@@ -556,7 +558,6 @@ async function generatePDFFromHTML(html: string, filename: string, orientation: 
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
   const pages = iframeDoc.querySelectorAll(".page")
-  console.log("[v0] Found pages:", pages.length)
 
   const pdf = new jsPDF({
     orientation: orientation,
@@ -612,17 +613,9 @@ async function generatePDFFromHTML(html: string, filename: string, orientation: 
 }
 
 export async function downloadReport(caseData: Case) {
-  console.log("[v0] downloadReport called with case:", caseData.id)
-  try {
-    const html = generateReportHTML(caseData)
-    console.log("[v0] HTML generated, length:", html.length)
-    const filename = `DataSpike-Report-${caseData.id.replace("chk_", "").toUpperCase()}.pdf`
-    await generatePDFFromHTML(html, filename, "portrait")
-    console.log("[v0] PDF generated successfully")
-  } catch (error) {
-    console.error("[v0] downloadReport error:", error)
-    throw error
-  }
+  const html = generateReportHTML(caseData)
+  const filename = `DataSpike-Report-${caseData.id.replace("chk_", "").toUpperCase()}.pdf`
+  await generatePDFFromHTML(html, filename, "portrait")
 }
 
 export async function downloadBulkReport(cases: Case[]) {
