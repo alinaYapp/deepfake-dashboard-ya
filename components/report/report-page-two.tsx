@@ -5,19 +5,19 @@ interface ReportPageTwoProps {
 export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
   const definitions = [
     {
-      term: "Deepfake Probability Score",
+      term: "Overall Score",
       definition:
-        "The maximum smoothed probability of manipulation across all analyzed video frames. Higher values indicate stronger evidence of synthetic content.",
+        "The maximum smoothed frame-level manipulation probability across the analyzed video. Calculated as max(smoothed frame-level probabilities). Higher values indicate stronger likelihood of synthetic or manipulated content.",
     },
     {
-      term: "Confidence Thresholds",
+      term: "Verdict",
       definition:
-        "0–39%: Authentic (no manipulation detected) · 40–69%: Uncertain (requires manual review) · 70–100%: Suspicious (high likelihood of manipulation)",
+        "Derived from predefined decision thresholds applied to the Overall Score. Classification levels: Authentic (0–39%) — no significant indicators of manipulation detected. Uncertain (40–69%) — mixed or inconclusive signals; manual review recommended. Suspicious (70–100%) — strong indicators of synthetic or manipulated content detected. The Verdict is an interpretation of the Overall Score and is not a separate metric.",
     },
     {
-      term: "Forensic Flags",
+      term: "File Metadata",
       definition:
-        "Automated signals from metadata analysis. Flags indicate anomalies such as AI-generation signatures, professional editing software traces, or inconsistent encoding metadata.",
+        "Structural and embedded information extracted from the file. Possible automated signals include: DeepfakeDetected, MetadataProfessionalSoftware, MetadataAiGeneratorDetected, SuspiciousMetadata. Metadata flags indicate anomalies but do not independently constitute definitive proof of manipulation.",
     },
     {
       term: "Heatmap",

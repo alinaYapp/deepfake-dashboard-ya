@@ -216,8 +216,7 @@ function generateReportHTML(caseData: Case): string {
         </div>
         <div style="flex: 0 0 180px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px; border-left: 1px solid #e5e7eb;">
           <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Score</div>
-          <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1; margin-bottom: 8px;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
-          <div style="height: 26px; padding: 0 16px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; line-height: 26px; box-sizing: border-box;">${verdictLabel}</div>
+          <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
         </div>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 8px; color: #9ca3af; padding: 2px 0;">
@@ -465,16 +464,16 @@ function generateReportHTML(caseData: Case): string {
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Interpreting the Results</h2>
       <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
         <tr style="background: #ffffff;">
-          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Deepfake Probability Score</td>
-          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">The maximum smoothed probability of manipulation across all analyzed video frames. Higher values indicate stronger evidence of synthetic content.</td>
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Overall Score</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">The maximum smoothed frame-level manipulation probability across the analyzed video. Calculated as max(smoothed frame-level probabilities). Higher values indicate stronger likelihood of synthetic or manipulated content.</td>
         </tr>
         <tr style="background: #f8fafc;">
-          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Confidence Thresholds</td>
-          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">0–39%: Authentic (no manipulation detected) · 40–69%: Uncertain (requires manual review) · 70–100%: Suspicious (high likelihood of manipulation)</td>
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Verdict</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Derived from predefined decision thresholds applied to the Overall Score. Classification levels: Authentic (0–39%) — no significant indicators of manipulation detected. Uncertain (40–69%) — mixed or inconclusive signals; manual review recommended. Suspicious (70–100%) — strong indicators of synthetic or manipulated content detected. The Verdict is an interpretation of the Overall Score and is not a separate metric.</td>
         </tr>
         <tr style="background: #ffffff;">
-          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Forensic Flags</td>
-          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Automated signals from metadata analysis. Flags indicate anomalies such as AI-generation signatures, professional editing software traces, or inconsistent encoding metadata.</td>
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">File Metadata</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Structural and embedded information extracted from the file. Possible automated signals include: DeepfakeDetected, MetadataProfessionalSoftware, MetadataAiGeneratorDetected, SuspiciousMetadata. Metadata flags indicate anomalies but do not independently constitute definitive proof of manipulation.</td>
         </tr>
         <tr style="background: #f8fafc;">
           <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Heatmap</td>
