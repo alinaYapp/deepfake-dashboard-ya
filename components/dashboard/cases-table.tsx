@@ -321,7 +321,10 @@ export function CasesTable({ cases, onViewCase, onUpdateCase, filterByType }: Ca
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => void downloadReport(caseData)}
+                            onClick={() => {
+                              console.log("[v0] Download button clicked for case:", caseData.id)
+                              downloadReport(caseData).catch((err) => console.error("[v0] Download error:", err))
+                            }}
                             className="px-2"
                             title="Download Report"
                           >

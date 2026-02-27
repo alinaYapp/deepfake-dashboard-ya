@@ -5,11 +5,9 @@ import html2canvas from "html2canvas"
 // PDF v3 — data-driven forensic flags + grouped metadata subsections
 function generateReportHTML(caseData: Case): string {
   const reportNumber = caseData.id.replace("chk_", "").toUpperCase()
-  const reportDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+  const now = new Date()
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  const reportDate = `${months[now.getUTCMonth()]} ${now.getUTCDate()}, ${now.getUTCFullYear()}`
   const details = caseData.details
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
