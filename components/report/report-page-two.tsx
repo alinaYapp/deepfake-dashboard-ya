@@ -32,9 +32,21 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
   ]
 
   const references = [
-    'Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV).',
-    'Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., & Batra, D. (2017). Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization. IEEE/CVF International Conference on Computer Vision (ICCV).',
-    'Verdoliva, L. (2020). Media Forensics and DeepFakes: An Overview. IEEE Journal of Selected Topics in Signal Processing, 14(5), 910–932.',
+  ]
+
+  const referencesWithLinks = [
+    {
+      text: 'Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV).',
+      url: 'https://doi.org/10.1109/ICCV.2019.00009',
+    },
+    {
+      text: 'Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., & Batra, D. (2017). Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization. IEEE/CVF International Conference on Computer Vision (ICCV).',
+      url: 'https://doi.org/10.1109/ICCV.2017.74',
+    },
+    {
+      text: 'Verdoliva, L. (2020). Media Forensics and DeepFakes: An Overview. IEEE Journal of Selected Topics in Signal Processing, 14(5), 910–932.',
+      url: 'https://doi.org/10.1109/JSTSP.2020.3002101',
+    },
   ]
 
   return (
@@ -245,9 +257,12 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
             References
           </h2>
           <ol style={{ fontSize: "9px", color: "#4b5563", lineHeight: "1.6", marginLeft: "16px" }}>
-            {references.map((ref, i) => (
+            {referencesWithLinks.map((ref, i) => (
               <li key={i} style={{ marginBottom: "6px" }}>
-                {ref}
+                {ref.text}{" "}
+                <a href={ref.url} style={{ color: "#2563eb", textDecoration: "underline" }} target="_blank" rel="noopener noreferrer">
+                  {ref.url}
+                </a>
               </li>
             ))}
           </ol>

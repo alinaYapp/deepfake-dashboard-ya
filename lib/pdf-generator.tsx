@@ -517,9 +517,9 @@ function generateReportHTML(caseData: Case): string {
     <div style="margin-bottom: 40px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
       <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">
-        <li style="margin-bottom: 6px;">Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV).</li>
-        <li style="margin-bottom: 6px;">Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., & Batra, D. (2017). Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization. IEEE/CVF International Conference on Computer Vision (ICCV).</li>
-        <li style="margin-bottom: 6px;">Verdoliva, L. (2020). Media Forensics and DeepFakes: An Overview. IEEE Journal of Selected Topics in Signal Processing, 14(5), 910–932.</li>
+        <li style="margin-bottom: 6px;">Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV). <a href="https://doi.org/10.1109/ICCV.2019.00009" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/ICCV.2019.00009</a></li>
+        <li style="margin-bottom: 6px;">Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., & Batra, D. (2017). Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization. IEEE/CVF International Conference on Computer Vision (ICCV). <a href="https://doi.org/10.1109/ICCV.2017.74" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/ICCV.2017.74</a></li>
+        <li style="margin-bottom: 6px;">Verdoliva, L. (2020). Media Forensics and DeepFakes: An Overview. IEEE Journal of Selected Topics in Signal Processing, 14(5), 910–932. <a href="https://doi.org/10.1109/JSTSP.2020.3002101" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/JSTSP.2020.3002101</a></li>
       </ol>
       <p style="font-size: 8px; color: #9ca3af; font-style: italic; margin-top: 10px;">Full technical documentation and model specifications available upon request.</p>
     </div>
