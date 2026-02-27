@@ -105,7 +105,7 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
       {/* ABSOLUTE PAGE FOOTER */}
       <div style={{ position: "absolute", bottom: "20px", left: "40px", right: "40px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "8px", color: "#9ca3af", paddingTop: "6px", borderTop: "1px solid #e5e7eb" }}>
         <span>DataSpike Deepfake Detection Report</span>
-        <span>Page 1 of 1</span>
+        <span>Page 1 of 2</span>
       </div>
     </div>
   )
