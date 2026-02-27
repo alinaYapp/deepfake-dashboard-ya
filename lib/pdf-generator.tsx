@@ -558,6 +558,7 @@ async function generatePDFFromHTML(html: string, filename: string, orientation: 
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
   const pages = iframeDoc.querySelectorAll(".page")
+  console.log("[v0] Found pages:", pages.length)
 
   const pdf = new jsPDF({
     orientation: orientation,
@@ -613,9 +614,17 @@ async function generatePDFFromHTML(html: string, filename: string, orientation: 
 }
 
 export async function downloadReport(caseData: Case) {
-  const html = generateReportHTML(caseData)
-  const filename = `DataSpike-Report-${caseData.id.replace("chk_", "").toUpperCase()}.pdf`
-  await generatePDFFromHTML(html, filename, "portrait")
+  console.log("[v0] downloadReport called with case:", caseData.id)
+  try {
+    const html = generateReportHTML(caseData)
+    console.log("[v0] HTML generated, length:", html.length)
+    const filename = `DataSpike-Report-${caseData.id.replace("chk_", "").toUpperCase()}.pdf`
+    await generatePDFFromHTML(html, filename, "portrait")
+    console.log("[v0] PDF generated successfully")
+  } catch (error) {
+    console.error("[v0] downloadReport error:", error)
+    throw error
+  }
 }
 
 export async function downloadBulkReport(cases: Case[]) {
