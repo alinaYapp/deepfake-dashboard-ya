@@ -189,7 +189,7 @@ function generateReportHTML(caseData: Case): string {
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
-    .page { width: 794px; min-height: 1123px; padding: 28px 40px 40px; position: relative; background: white; box-sizing: border-box; }
+    .page { width: 794px; min-height: 1123px; padding: 28px 40px 60px; position: relative; background: white; box-sizing: border-box; }
     .page-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
@@ -513,7 +513,7 @@ function generateReportHTML(caseData: Case): string {
     </div>
 
     <!-- Section 4: References -->
-    <div style="margin-bottom: 16px;">
+    <div style="margin-bottom: 40px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
       <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">
         <li style="margin-bottom: 6px;">Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV).</li>

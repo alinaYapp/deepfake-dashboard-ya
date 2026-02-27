@@ -87,7 +87,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
       </div>
 
       {/* BODY CONTENT */}
-      <div style={{ padding: "28px 40px 60px" }}>
+      <div style={{ padding: "28px 40px 80px" }}>
         {/* Section 1: How to Read This Report */}
         <div
           style={{
@@ -229,7 +229,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
         </div>
 
         {/* Section 4: References */}
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "40px" }}>
           <h2
             style={{
               fontSize: "13px",
