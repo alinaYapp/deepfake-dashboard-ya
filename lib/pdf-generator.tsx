@@ -444,7 +444,7 @@ function generateReportHTML(caseData: Case): string {
 
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
-      <span>Page 1 of 2</span>
+      <span>Page 1 of 3</span>
     </div>
   </div>
 
@@ -513,7 +513,25 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- Section 4: References -->
+    <div class="page-footer">
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
+      <span>Page 2 of 3</span>
+      <span>© 2025 DataSpike. All rights reserved.</span>
+    </div>
+  </div>
+
+  <!-- PAGE 3: References -->
+  <div class="page" style="page-break-before: always;">
+    <!-- Header Bar -->
+    <div style="background: #1a1f36; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; margin: -28px -40px 20px -40px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 24px; height: 24px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 9px;">DS</div>
+        <span style="font-size: 14px; font-weight: 600; color: #ffffff;">DataSpike</span>
+      </div>
+      <span style="font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing: 0.5px;">Methodology & Scope</span>
+    </div>
+
+    <!-- References -->
     <div style="margin-bottom: 40px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
       <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">
@@ -526,7 +544,7 @@ function generateReportHTML(caseData: Case): string {
 
     <div class="page-footer">
       <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
-      <span>Page 2 of 2</span>
+      <span>Page 3 of 3</span>
       <span>© 2025 DataSpike. All rights reserved.</span>
     </div>
   </div>

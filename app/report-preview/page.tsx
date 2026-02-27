@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { DeepfakeReportPage } from "@/components/report/deepfake-report"
 import { ReportPageTwo } from "@/components/report/report-page-two"
+import { ReportPageThree } from "@/components/report/report-page-three"
 import {
   mockSuspiciousReport,
   mockAuthenticReport,
@@ -98,6 +99,16 @@ export default function ReportPreviewPage() {
         }}
       >
         <ReportPageTwo />
+      </div>
+
+      {/* Report Page 3 */}
+      <div
+        style={{
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+          borderRadius: "2px",
+        }}
+      >
+        <ReportPageThree />
       </div>
     </div>
   )
