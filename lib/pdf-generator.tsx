@@ -486,24 +486,7 @@ function generateReportHTML(caseData: Case): string {
       </table>
     </div>
 
-    <!-- Section 2: Verdict Logic -->
-    <div style="margin-bottom: 24px;">
-      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Verdict Logic</h2>
-      <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 16px; font-size: 9px; font-family: monospace; line-height: 1.8; color: #374151;">
-        <div>NoFaceDetected? → Yes → <span style="background: #6b7280; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">FAILED</span> (model requires faces)</div>
-        <div style="padding-left: 90px;">↓ No</div>
-        <div>Score &gt; 60%? → Yes → DeepfakeDetected → <span style="background: #dc2626; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">DEEPFAKE</span></div>
-        <div style="padding-left: 68px;">↓ No</div>
-        <div>MetadataAiGeneratorDetected? → Yes → <span style="background: #dc2626; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">DEEPFAKE</span> (metadata override)</div>
-        <div style="padding-left: 170px;">↓ No</div>
-        <div>Score 40–60%? → Yes → DeepfakeModelUncertain → <span style="background: #d97706; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">UNCERTAIN</span></div>
-        <div style="padding-left: 80px;">↓ No</div>
-        <div>Score &lt; 40% → <span style="background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">AUTHENTIC</span></div>
-      </div>
-      <p style="font-size: 9px; color: #6b7280; margin-top: 8px; font-style: italic;">MetadataProfessionalSoftware and SuspiciousMetadata are displayed in the report but do not affect the model verdict.</p>
-    </div>
-
-    <!-- Section 3: Detection Methodology -->
+    <!-- Section 2: Detection Methodology -->
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Detection Methodology</h2>
       <div style="font-size: 10px; color: #374151; line-height: 1.7;">
@@ -514,7 +497,7 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- Section 4: Scope & Limitations -->
+    <!-- Section 3: Scope & Limitations -->
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Scope & Limitations</h2>
       <div style="font-size: 10px; color: #374151; line-height: 1.7;">
@@ -530,7 +513,7 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- Section 5: References -->
+    <!-- Section 4: References -->
     <div style="margin-bottom: 40px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
       <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">

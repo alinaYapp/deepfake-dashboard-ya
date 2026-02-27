@@ -147,48 +147,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
           </table>
         </div>
 
-        {/* Section 2: Verdict Logic */}
-        <div style={{ marginBottom: "24px" }}>
-          <h2
-            style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#1e293b",
-              marginBottom: "12px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Verdict Logic
-          </h2>
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e5e7eb",
-              borderRadius: "6px",
-              padding: "12px 16px",
-              fontSize: "9px",
-              fontFamily: "monospace",
-              lineHeight: "1.8",
-              color: "#374151",
-            }}
-          >
-            <div>NoFaceDetected? → Yes → <span style={{ background: "#6b7280", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>FAILED</span> (model requires faces)</div>
-            <div style={{ paddingLeft: "90px" }}>↓ No</div>
-            <div>Score {">"} 60%? → Yes → DeepfakeDetected → <span style={{ background: "#dc2626", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>DEEPFAKE</span></div>
-            <div style={{ paddingLeft: "68px" }}>↓ No</div>
-            <div>MetadataAiGeneratorDetected? → Yes → <span style={{ background: "#dc2626", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>DEEPFAKE</span> (metadata override)</div>
-            <div style={{ paddingLeft: "170px" }}>↓ No</div>
-            <div>Score 40–60%? → Yes → DeepfakeModelUncertain → <span style={{ background: "#d97706", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>UNCERTAIN</span></div>
-            <div style={{ paddingLeft: "80px" }}>↓ No</div>
-            <div>Score {"<"} 40% → <span style={{ background: "#16a34a", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>AUTHENTIC</span></div>
-          </div>
-          <p style={{ fontSize: "9px", color: "#6b7280", marginTop: "8px", fontStyle: "italic" }}>
-            MetadataProfessionalSoftware and SuspiciousMetadata are displayed in the report but do not affect the model verdict.
-          </p>
-        </div>
-
-        {/* Section 3: Detection Methodology */}
+        {/* Section 2: Detection Methodology */}
         <div style={{ marginBottom: "24px" }}>
           <h2
             style={{
@@ -224,7 +183,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
           </div>
         </div>
 
-        {/* Section 4: Scope & Limitations */}
+        {/* Section 3: Scope & Limitations */}
         <div style={{ marginBottom: "24px" }}>
           <h2
             style={{
@@ -271,7 +230,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
           </div>
         </div>
 
-        {/* Section 5: References */}
+        {/* Section 4: References */}
         <div style={{ marginBottom: "40px" }}>
           <h2
             style={{
