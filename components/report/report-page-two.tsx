@@ -1,0 +1,251 @@
+interface ReportPageTwoProps {
+  isEnterprise?: boolean
+}
+
+export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
+  const definitions = [
+    {
+      term: "Overall Score",
+      definition:
+        "The maximum smoothed frame-level manipulation probability across the analyzed video. Calculated as max(smoothed frame-level probabilities). Higher values indicate stronger likelihood of synthetic or manipulated content.",
+    },
+    {
+      term: "Verdict",
+      definition:
+        "Derived from the Overall Score with the following thresholds: Authentic (score < 40%) — no significant indicators of manipulation detected. Uncertain (score 40–60%) — mixed or inconclusive signals; manual review recommended. Deepfake (score > 60%) — strong indicators of synthetic or manipulated content detected. The primary verdict source is the detection model. Metadata errors alone do not change the verdict, except: MetadataAiGeneratorDetected elevates the verdict to Deepfake regardless of the model score.",
+    },
+    {
+      term: "File Metadata",
+      definition:
+        "Structural and embedded information extracted from the file via FFprobe and EXIF/XMP analysis. Error codes: DeepfakeDetected — deepfake detected by model (affects verdict). MetadataAiGeneratorDetected — AI generator signatures in metadata (affects verdict → Deepfake). MetadataProfessionalSoftware — professional editing software detected (informational only). SuspiciousMetadata — missing camera data or encoding mismatches (informational only). NoFaceDetected — no detectable face found (verdict → Failed). DeepfakeModelUncertain — model score near threshold (verdict → Uncertain). Only DeepfakeDetected and MetadataAiGeneratorDetected change the verdict.",
+    },
+    {
+      term: "Heatmap",
+      definition:
+        "A Grad-CAM visualization showing which spatial regions of a frame contributed most to the model's prediction. Red areas indicate highest model attention.",
+    },
+    {
+      term: "Top Frames",
+      definition:
+        "The three frames with the highest individual manipulation probability, selected with a minimum 0.5-second interval to ensure independent sampling.",
+    },
+  ]
+
+  return (
+    <div
+      style={{
+        width: "794px",
+        minHeight: "1123px",
+        padding: "0",
+        position: "relative",
+        background: "#ffffff",
+        boxSizing: "border-box",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        color: "#1a1a1a",
+        fontSize: "11px",
+        lineHeight: "1.5",
+      }}
+    >
+      {/* HEADER BAR */}
+      <div
+        style={{
+          background: "#1a1f36",
+          padding: "16px 40px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              width: "24px",
+              height: "24px",
+              background: "#4A7BF7",
+              borderRadius: "5px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "9px",
+            }}
+          >
+            DS
+          </div>
+          <span style={{ fontSize: "14px", fontWeight: 600, color: "#ffffff" }}>DataSpike</span>
+        </div>
+        <span style={{ fontSize: "12px", fontWeight: 500, color: "#94a3b8", letterSpacing: "0.5px" }}>
+          Methodology & Scope
+        </span>
+      </div>
+
+      {/* BODY CONTENT */}
+      <div style={{ padding: "28px 40px 80px" }}>
+        {/* Section 1: How to Read This Report */}
+        <div
+          style={{
+            background: "#f0f4f8",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#1e293b",
+              marginBottom: "12px",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Interpreting the Results
+          </h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+            <tbody>
+              {definitions.map((item, i) => (
+                <tr
+                  key={i}
+                  style={{
+                    background: i % 2 === 0 ? "#ffffff" : "#f8fafc",
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      fontWeight: 600,
+                      color: "#374151",
+                      width: "180px",
+                      verticalAlign: "top",
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {item.term}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      color: "#4b5563",
+                      lineHeight: "1.5",
+                      borderBottom: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {item.definition}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Section 2: Detection Methodology */}
+        <div style={{ marginBottom: "24px" }}>
+          <h2
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#1e293b",
+              marginBottom: "10px",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Detection Methodology
+          </h2>
+          <div style={{ fontSize: "10px", color: "#374151", lineHeight: "1.7" }}>
+            <p style={{ marginBottom: "10px" }}>
+              DataSpike's deepfake detection pipeline combines frame-level deep neural network analysis with temporal
+              smoothing and metadata forensics. Each video frame is independently evaluated by a CNN-based classifier
+              trained on diverse manipulation techniques including face-swap, face-reenactment, and fully synthetic
+              generation. Frame-level probabilities are temporally smoothed to produce a robust overall score, calculated as max(smoothed_probs).
+            </p>
+            <p style={{ marginBottom: "10px" }}>
+              Metadata analysis examines container-level, encoding, and provenance information extracted via FFprobe and
+              EXIF/XMP parsers. Flags are generated when signatures of professional editing software, AI generation
+              tools, or encoding inconsistencies are detected.
+            </p>
+            <p style={{ marginBottom: "10px" }}>
+              Visual interpretability is provided through Grad-CAM heatmaps, which highlight spatial regions that most
+              influenced the model's prediction for a given frame.
+            </p>
+            <p>
+              The model is optimized for face-based manipulation detection. A NoFaceDetected error is raised when no frames contain a detectable face.
+            </p>
+          </div>
+        </div>
+
+        {/* Section 3: Scope & Limitations */}
+        <div style={{ marginBottom: "24px" }}>
+          <h2
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#1e293b",
+              marginBottom: "10px",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Scope & Limitations
+          </h2>
+          <div style={{ fontSize: "10px", color: "#374151", lineHeight: "1.7" }}>
+            <p style={{ marginBottom: "10px" }}>
+              This analysis is automated and probabilistic. Results reflect the model's assessment based on the
+              submitted media file and should not be treated as a definitive legal determination of authenticity or
+              manipulation.
+            </p>
+            <p style={{ marginBottom: "8px", fontWeight: 600 }}>Limitations to consider:</p>
+            <ul style={{ marginLeft: "16px", marginBottom: "10px" }}>
+              <li style={{ marginBottom: "4px" }}>
+                Detection accuracy depends on input quality, resolution, and encoding. Re-encoded or heavily compressed
+                media may yield lower confidence scores.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                The model is optimized for face-based manipulation detection. Non-facial manipulations (e.g., background
+                editing, object insertion) may not be detected.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Metadata flags rely on available container and encoding information. Files that have been stripped of
+                metadata or re-packaged may not trigger forensic flags.
+              </li>
+              <li style={{ marginBottom: "4px" }}>
+                Novel manipulation techniques not represented in training data may evade detection.
+              </li>
+            </ul>
+            <p style={{ fontWeight: 600, color: "#1e293b" }}>
+              Final determination of content authenticity remains the sole responsibility of the reviewing party.{" "}
+              <span style={{ fontWeight: 400, color: "#374151" }}>
+                This report is intended as supporting evidence for compliance and investigative workflows.
+              </span>
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* FOOTER */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "40px",
+          right: "40px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "8px",
+          color: "#9ca3af",
+          paddingTop: "6px",
+          borderTop: "1px solid #e5e7eb",
+        }}
+      >
+        <span style={{ letterSpacing: "1px", fontWeight: 600, color: "#6b7280" }}>CONFIDENTIAL</span>
+        <span>Page 2 of 3</span>
+        <span>© 2025 DataSpike. All rights reserved.</span>
+      </div>
+    </div>
+  )
+}

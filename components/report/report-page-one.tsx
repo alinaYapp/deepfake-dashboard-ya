@@ -1,4 +1,4 @@
-import { type Case, formatBytes, formatDate } from "@/lib/mock-data"
+import { type Case, formatDate } from "@/lib/mock-data"
 import { HeatMapBlock } from "./heat-map-block"
 
 interface ReportPageOneProps { caseData: Case; isEnterprise?: boolean }
@@ -9,27 +9,27 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
   const confidencePercent = (caseData.score * 100).toFixed(1)
-  const faceResult = details?.pixel_analysis?.find((p) => p.type === "face_manipulation")
-  const voiceResult = details?.voice_analysis?.[0]
-  const integrityOk = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
-  const hasIntegrityData = !!details?.structural_consistency
   const verdictColor = isSuspicious ? "#B91C1C" : isUncertain ? "#B45309" : "#15803D"
   const verdictLabel = isSuspicious ? "Suspicious" : isUncertain ? "Uncertain" : "Authentic"
-  const faceConf = faceResult?.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear"
-  const voiceSus = voiceResult?.result?.toLowerCase() === "suspicious"
-  const voiceConf = voiceSus ? `${((voiceResult?.confidence ?? 0) * 100).toFixed(0)}%` : "Clear"
+  const scoreAlert = caseData.score >= 0.7
+
+  // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
+  const sigCategory = details?.structural_analysis?.signature_category
+  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Professional Software"
+  const encoder = details?.decoded_metadata?.general?.writing_application
+  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter") || encoder.toLowerCase().includes("after effects") || encoder.toLowerCase().includes("davinci") || encoder.toLowerCase().includes("premiere")))
+  const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
+  const metadataValue = metadataAlert ? "Suspicious" : "Consistent"
 
   const cards = [
-    { label: "Face Analysis", value: faceConf, alert: faceResult?.result === "suspicious",
-      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.5"/></svg>' },
-    { label: "Voice Analysis", value: voiceConf, alert: voiceSus,
-      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="7" y="1.5" width="4" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 8c0 3 2.5 5.5 5.5 5.5s5.5-2.5 5.5-5.5" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="13.5" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.5"/></svg>' },
-    { label: "File Metadata", value: hasIntegrityData ? (integrityOk ? "Consistent" : "Concerns") : "Extracted", alert: hasIntegrityData ? !integrityOk : false,
+    { label: "Verdict", value: verdictLabel, alert: scoreAlert, isVerdict: true,
+      icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M9 1.5L2.5 5.5v7L9 16.5l6.5-4v-7L9 1.5z" stroke="currentColor" stroke-width="1.5"/><path d="M9 9V5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="11.5" r="0.8" fill="currentColor"/></svg>' },
+    { label: "File Metadata", value: metadataValue, alert: metadataAlert, isVerdict: false,
       icon: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3.5" y="1.5" width="11" height="15" rx="1.5" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="5.5" x2="12" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="6" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="1"/><line x1="6" y1="10.5" x2="10" y2="10.5" stroke="currentColor" stroke-width="1"/></svg>' },
   ]
 
   return (
-    <div style={{ width: "794px", height: "1123px", padding: "28px 40px 40px", position: "relative", background: "#ffffff", overflow: "hidden", boxSizing: "border-box", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a1a1a", fontSize: "11px", lineHeight: "1.5" }}>
+    <div style={{ width: "794px", minHeight: "1123px", padding: "28px 40px 40px", position: "relative", background: "#ffffff", boxSizing: "border-box", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a1a1a", fontSize: "11px", lineHeight: "1.5" }}>
       {/* HEADER */}
       <div style={{ marginBottom: "8px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -58,9 +58,8 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
             </table>
           </div>
           <div style={{ flex: "0 0 180px", background: isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "12px 16px", borderLeft: "1px solid #e5e7eb" }}>
-            <div style={{ fontSize: "8px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Overall Confidence</div>
-            <div style={{ fontSize: "38px", fontWeight: 700, color: verdictColor, lineHeight: "1", marginBottom: "8px" }}>{confidencePercent}<span style={{ fontSize: "20px" }}>%</span></div>
-            <div style={{ height: "26px", padding: "0 16px", borderRadius: "4px", background: verdictColor, color: "#fff", fontSize: "11px", fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: "26px", boxSizing: "border-box" }}>{verdictLabel}</div>
+            <div style={{ fontSize: "8px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "6px" }}>Overall Score</div>
+            <div style={{ fontSize: "38px", fontWeight: 700, color: verdictColor, lineHeight: "1" }}>{confidencePercent}<span style={{ fontSize: "20px" }}>%</span></div>
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", fontSize: "8px", color: "#9ca3af", padding: "2px 0" }}>
@@ -69,28 +68,31 @@ export function ReportPageOne({ caseData, isEnterprise = true }: ReportPageOnePr
               <span key={x.l} style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "5px", height: "5px", borderRadius: "50%", background: x.c, display: "inline-block", flexShrink: 0 }} />{x.l}</span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <span>{caseData.content_type} &middot; {formatBytes(caseData.file_size_bytes)}</span>
-            <span>Engine v{details?.project_info?.verify_version || "2.374"}</span>
-          </div>
+          <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>Engine v{details?.project_info?.verify_version || "2.374"}</span>
         </div>
       </div>
 
       {/* SUMMARY CARDS */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
         {cards.map((c, i) => {
-          const clr = c.alert ? "#B91C1C" : "#15803D"
+          const clr = c.isVerdict ? verdictColor : (c.alert ? "#B91C1C" : "#15803D")
+          const bg = c.isVerdict ? (isSuspicious ? "#FEF2F2" : isUncertain ? "#FFFBEB" : "#F0FDF4") : (c.alert ? "#FEF2F2" : "#F0FDF4")
+          const border = c.isVerdict ? (isSuspicious ? "#FECACA" : isUncertain ? "#FDE68A" : "#BBF7D0") : (c.alert ? "#FECACA" : "#BBF7D0")
           return (
-            <div key={i} style={{ flex: 1, padding: "7px 10px", background: c.alert ? "#FEF2F2" : "#F0FDF4", border: `1px solid ${c.alert ? "#FECACA" : "#BBF7D0"}`, borderRadius: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <div key={i} style={{ flex: 1, padding: "7px 10px", background: bg, border: `1px solid ${border}`, borderRadius: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
               <div dangerouslySetInnerHTML={{ __html: c.icon }} style={{ flexShrink: 0, color: clr }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "8px", color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.3px" }}>{c.label}</div>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: clr, lineHeight: "1.2" }}>{c.value}</div>
+                {c.isVerdict ? (
+                  <div style={{ display: "inline-block", padding: "2px 10px", borderRadius: "4px", background: verdictColor, color: "#fff", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px", marginTop: "2px" }}>{c.value}</div>
+                ) : (
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: clr, lineHeight: "1.2" }}>{c.value}</div>
+                )}
               </div>
-              {c.alert
+              {!c.isVerdict && (c.alert
                 ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" strokeWidth="1" /><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" strokeWidth="1.5" /><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" strokeWidth="1.5" /></svg>
                 : <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" strokeWidth="1" /><path d="M5 8l2 2 4-4" stroke="#15803D" strokeWidth="1.5" fill="none" /></svg>
-              }
+              )}
             </div>
           )
         })}
