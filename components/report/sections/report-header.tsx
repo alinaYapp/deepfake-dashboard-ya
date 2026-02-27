@@ -254,7 +254,7 @@ export function ReportHeader({
               marginBottom: "2px",
             }}
           >
-            Overall Confidence
+            Overall Score
           </div>
           <SemiCircularGauge
             score={report.overall_score}

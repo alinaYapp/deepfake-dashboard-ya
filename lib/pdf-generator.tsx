@@ -38,21 +38,23 @@ function generateReportHTML(caseData: Case): string {
   const encoder = details?.decoded_metadata?.general?.writing_application
   const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter") || encoder.toLowerCase().includes("after effects") || encoder.toLowerCase().includes("davinci") || encoder.toLowerCase().includes("premiere")))
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string; isVerdict?: boolean }
   const scoreAlert = caseData.score >= 0.7
   const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
   const metrics: Metric[] = [
     {
-      label: "Overall Score",
-      value: `${confidencePercent}%`,
-      status: scoreAlert ? "alert" : "ok",
+      label: "Verdict",
+      value: verdictLabel,
+      status: isSuspicious ? "alert" : isUncertain ? "warn" : "ok",
       iconType: "forensic",
+      isVerdict: true,
     },
     {
       label: "File Metadata",
       value: metadataAlert ? "Suspicious" : "Consistent",
       status: metadataAlert ? "alert" : "ok",
       iconType: "file",
+      isVerdict: false,
     },
   ]
 
@@ -213,7 +215,7 @@ function generateReportHTML(caseData: Case): string {
           </table>
         </div>
         <div style="flex: 0 0 180px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px; border-left: 1px solid #e5e7eb;">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Confidence</div>
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Score</div>
           <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1; margin-bottom: 8px;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
           <div style="height: 26px; padding: 0 16px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; line-height: 26px; box-sizing: border-box;">${verdictLabel}</div>
         </div>
@@ -231,19 +233,22 @@ function generateReportHTML(caseData: Case): string {
     <!-- 2. Analysis Summary (2 cards) -->
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
       ${metrics.map((card) => {
-        const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
-        const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'
-        const cbd = card.status === 'alert' ? '#FECACA' : '#BBF7D0'
+        const cc = card.isVerdict ? verdictColor : (card.status === 'alert' ? '#B91C1C' : '#15803D')
+        const cb = card.isVerdict ? verdictBg : (card.status === 'alert' ? '#FEF2F2' : '#F0FDF4')
+        const cbd = card.isVerdict ? (isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0') : (card.status === 'alert' ? '#FECACA' : '#BBF7D0')
         const checkIcon = card.status === 'ok'
           ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" stroke-width="1"/><path d="M5 8l2 2 4-4" stroke="#15803D" stroke-width="1.5" fill="none"/></svg>'
           : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/></svg>'
+        const valueHtml = card.isVerdict
+          ? `<div style="display: inline-block; padding: 2px 10px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px;">${card.value}</div>`
+          : `<div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>`
         return `<div style="flex: 1; padding: 7px 10px; background: ${cb}; border: 1px solid ${cbd}; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
           ${iconSvgs[card.iconType](cc)}
           <div style="flex: 1;">
             <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${card.label}</div>
-            <div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>
+            ${valueHtml}
           </div>
-          ${checkIcon}
+          ${card.isVerdict ? '' : checkIcon}
         </div>`
       }).join('')}
     </div>
