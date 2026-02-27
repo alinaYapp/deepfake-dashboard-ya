@@ -469,11 +469,11 @@ function generateReportHTML(caseData: Case): string {
         </tr>
         <tr style="background: #f8fafc;">
           <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Verdict</td>
-          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Derived from predefined decision thresholds applied to the Overall Score. Classification levels: Authentic (0–39%) — no significant indicators of manipulation detected. Uncertain (40–69%) — mixed or inconclusive signals; manual review recommended. Suspicious (70–100%) — strong indicators of synthetic or manipulated content detected. The Verdict is an interpretation of the Overall Score and is not a separate metric.</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Derived from the Overall Score with the following thresholds: Authentic (score &lt; 40%) — no significant indicators of manipulation detected. Uncertain (score 40–60%) — mixed or inconclusive signals; manual review recommended. Deepfake (score &gt; 60%) — strong indicators of synthetic or manipulated content detected. The primary verdict source is the detection model. Metadata errors alone do not change the verdict, except: MetadataAiGeneratorDetected elevates the verdict to Deepfake regardless of the model score.</td>
         </tr>
         <tr style="background: #ffffff;">
           <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">File Metadata</td>
-          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Structural and embedded information extracted from the file. Possible automated signals include: DeepfakeDetected, MetadataProfessionalSoftware, MetadataAiGeneratorDetected, SuspiciousMetadata. Metadata flags indicate anomalies but do not independently constitute definitive proof of manipulation.</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Structural and embedded information extracted from the file via FFprobe and EXIF/XMP analysis. Error codes: DeepfakeDetected — deepfake detected by model (affects verdict). MetadataAiGeneratorDetected — AI generator signatures in metadata (affects verdict → Deepfake). MetadataProfessionalSoftware — professional editing software detected (informational only). SuspiciousMetadata — missing camera data or encoding mismatches (informational only). NoFaceDetected — no detectable face found (verdict → Failed). DeepfakeModelUncertain — model score near threshold (verdict → Uncertain). Only DeepfakeDetected and MetadataAiGeneratorDetected change the verdict.</td>
         </tr>
         <tr style="background: #f8fafc;">
           <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Heatmap</td>
@@ -486,17 +486,35 @@ function generateReportHTML(caseData: Case): string {
       </table>
     </div>
 
-    <!-- Section 2: Detection Methodology -->
+    <!-- Section 2: Verdict Logic -->
+    <div style="margin-bottom: 24px;">
+      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Verdict Logic</h2>
+      <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 16px; font-size: 9px; font-family: monospace; line-height: 1.8; color: #374151;">
+        <div>NoFaceDetected? → Yes → <span style="background: #6b7280; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">FAILED</span> (model requires faces)</div>
+        <div style="padding-left: 90px;">↓ No</div>
+        <div>Score &gt; 60%? → Yes → DeepfakeDetected → <span style="background: #dc2626; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">DEEPFAKE</span></div>
+        <div style="padding-left: 68px;">↓ No</div>
+        <div>MetadataAiGeneratorDetected? → Yes → <span style="background: #dc2626; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">DEEPFAKE</span> (metadata override)</div>
+        <div style="padding-left: 170px;">↓ No</div>
+        <div>Score 40–60%? → Yes → DeepfakeModelUncertain → <span style="background: #d97706; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">UNCERTAIN</span></div>
+        <div style="padding-left: 80px;">↓ No</div>
+        <div>Score &lt; 40% → <span style="background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 600;">AUTHENTIC</span></div>
+      </div>
+      <p style="font-size: 9px; color: #6b7280; margin-top: 8px; font-style: italic;">MetadataProfessionalSoftware and SuspiciousMetadata are displayed in the report but do not affect the model verdict.</p>
+    </div>
+
+    <!-- Section 3: Detection Methodology -->
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Detection Methodology</h2>
       <div style="font-size: 10px; color: #374151; line-height: 1.7;">
-        <p style="margin-bottom: 10px;">DataSpike's deepfake detection pipeline combines frame-level deep neural network analysis with temporal smoothing and metadata forensics. Each video frame is independently evaluated by a CNN-based classifier trained on diverse manipulation techniques including face-swap, face-reenactment, and fully synthetic generation. Frame-level probabilities are temporally smoothed to reduce noise and produce a robust overall score.</p>
+        <p style="margin-bottom: 10px;">DataSpike's deepfake detection pipeline combines frame-level deep neural network analysis with temporal smoothing and metadata forensics. Each video frame is independently evaluated by a CNN-based classifier trained on diverse manipulation techniques including face-swap, face-reenactment, and fully synthetic generation. Frame-level probabilities are temporally smoothed to produce a robust overall score, calculated as max(smoothed_probs).</p>
         <p style="margin-bottom: 10px;">Metadata analysis examines container-level, encoding, and provenance information extracted via FFprobe and EXIF/XMP parsers. Flags are generated when signatures of professional editing software, AI generation tools, or encoding inconsistencies are detected.</p>
-        <p>Visual interpretability is provided through Grad-CAM heatmaps, which highlight spatial regions that most influenced the model's prediction for a given frame.</p>
+        <p style="margin-bottom: 10px;">Visual interpretability is provided through Grad-CAM heatmaps, which highlight spatial regions that most influenced the model's prediction for a given frame.</p>
+        <p>The model is optimized for face-based manipulation detection. A NoFaceDetected error is raised when no frames contain a detectable face.</p>
       </div>
     </div>
 
-    <!-- Section 3: Scope & Limitations -->
+    <!-- Section 4: Scope & Limitations -->
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Scope & Limitations</h2>
       <div style="font-size: 10px; color: #374151; line-height: 1.7;">
@@ -512,7 +530,7 @@ function generateReportHTML(caseData: Case): string {
       </div>
     </div>
 
-    <!-- Section 4: References -->
+    <!-- Section 5: References -->
     <div style="margin-bottom: 40px;">
       <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
       <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">

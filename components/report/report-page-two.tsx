@@ -12,12 +12,12 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
     {
       term: "Verdict",
       definition:
-        "Derived from predefined decision thresholds applied to the Overall Score. Classification levels: Authentic (0–39%) — no significant indicators of manipulation detected. Uncertain (40–69%) — mixed or inconclusive signals; manual review recommended. Suspicious (70–100%) — strong indicators of synthetic or manipulated content detected. The Verdict is an interpretation of the Overall Score and is not a separate metric.",
+        "Derived from the Overall Score with the following thresholds: Authentic (score < 40%) — no significant indicators of manipulation detected. Uncertain (score 40–60%) — mixed or inconclusive signals; manual review recommended. Deepfake (score > 60%) — strong indicators of synthetic or manipulated content detected. The primary verdict source is the detection model. Metadata errors alone do not change the verdict, except: MetadataAiGeneratorDetected elevates the verdict to Deepfake regardless of the model score.",
     },
     {
       term: "File Metadata",
       definition:
-        "Structural and embedded information extracted from the file. Possible automated signals include: DeepfakeDetected, MetadataProfessionalSoftware, MetadataAiGeneratorDetected, SuspiciousMetadata. Metadata flags indicate anomalies but do not independently constitute definitive proof of manipulation.",
+        "Structural and embedded information extracted from the file via FFprobe and EXIF/XMP analysis. Error codes: DeepfakeDetected — deepfake detected by model (affects verdict). MetadataAiGeneratorDetected — AI generator signatures in metadata (affects verdict → Deepfake). MetadataProfessionalSoftware — professional editing software detected (informational only). SuspiciousMetadata — missing camera data or encoding mismatches (informational only). NoFaceDetected — no detectable face found (verdict → Failed). DeepfakeModelUncertain — model score near threshold (verdict → Uncertain). Only DeepfakeDetected and MetadataAiGeneratorDetected change the verdict.",
     },
     {
       term: "Heatmap",
@@ -147,7 +147,48 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
           </table>
         </div>
 
-        {/* Section 2: Detection Methodology */}
+        {/* Section 2: Verdict Logic */}
+        <div style={{ marginBottom: "24px" }}>
+          <h2
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#1e293b",
+              marginBottom: "12px",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Verdict Logic
+          </h2>
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              padding: "12px 16px",
+              fontSize: "9px",
+              fontFamily: "monospace",
+              lineHeight: "1.8",
+              color: "#374151",
+            }}
+          >
+            <div>NoFaceDetected? → Yes → <span style={{ background: "#6b7280", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>FAILED</span> (model requires faces)</div>
+            <div style={{ paddingLeft: "90px" }}>↓ No</div>
+            <div>Score {">"} 60%? → Yes → DeepfakeDetected → <span style={{ background: "#dc2626", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>DEEPFAKE</span></div>
+            <div style={{ paddingLeft: "68px" }}>↓ No</div>
+            <div>MetadataAiGeneratorDetected? → Yes → <span style={{ background: "#dc2626", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>DEEPFAKE</span> (metadata override)</div>
+            <div style={{ paddingLeft: "170px" }}>↓ No</div>
+            <div>Score 40–60%? → Yes → DeepfakeModelUncertain → <span style={{ background: "#d97706", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>UNCERTAIN</span></div>
+            <div style={{ paddingLeft: "80px" }}>↓ No</div>
+            <div>Score {"<"} 40% → <span style={{ background: "#16a34a", color: "#fff", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>AUTHENTIC</span></div>
+          </div>
+          <p style={{ fontSize: "9px", color: "#6b7280", marginTop: "8px", fontStyle: "italic" }}>
+            MetadataProfessionalSoftware and SuspiciousMetadata are displayed in the report but do not affect the model verdict.
+          </p>
+        </div>
+
+        {/* Section 3: Detection Methodology */}
         <div style={{ marginBottom: "24px" }}>
           <h2
             style={{
@@ -166,22 +207,24 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
               DataSpike's deepfake detection pipeline combines frame-level deep neural network analysis with temporal
               smoothing and metadata forensics. Each video frame is independently evaluated by a CNN-based classifier
               trained on diverse manipulation techniques including face-swap, face-reenactment, and fully synthetic
-              generation. Frame-level probabilities are temporally smoothed to reduce noise and produce a robust overall
-              score.
+              generation. Frame-level probabilities are temporally smoothed to produce a robust overall score, calculated as max(smoothed_probs).
             </p>
             <p style={{ marginBottom: "10px" }}>
               Metadata analysis examines container-level, encoding, and provenance information extracted via FFprobe and
               EXIF/XMP parsers. Flags are generated when signatures of professional editing software, AI generation
               tools, or encoding inconsistencies are detected.
             </p>
-            <p>
+            <p style={{ marginBottom: "10px" }}>
               Visual interpretability is provided through Grad-CAM heatmaps, which highlight spatial regions that most
               influenced the model's prediction for a given frame.
+            </p>
+            <p>
+              The model is optimized for face-based manipulation detection. A NoFaceDetected error is raised when no frames contain a detectable face.
             </p>
           </div>
         </div>
 
-        {/* Section 3: Scope & Limitations */}
+        {/* Section 4: Scope & Limitations */}
         <div style={{ marginBottom: "24px" }}>
           <h2
             style={{
@@ -228,7 +271,7 @@ export function ReportPageTwo({ isEnterprise = true }: ReportPageTwoProps) {
           </div>
         </div>
 
-        {/* Section 4: References */}
+        {/* Section 5: References */}
         <div style={{ marginBottom: "40px" }}>
           <h2
             style={{
