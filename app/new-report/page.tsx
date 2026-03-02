@@ -30,8 +30,10 @@ export default function NewReportPreviewPage() {
         gap: "24px",
       }}
     >
-      {/* Toggle toolbar */}
+      {/* Toggle toolbar — hidden when printing */}
+      <style>{`@media print { .report-toggle-toolbar { display: none !important; } }`}</style>
       <div
+        className="report-toggle-toolbar"
         style={{
           display: "flex",
           alignItems: "center",

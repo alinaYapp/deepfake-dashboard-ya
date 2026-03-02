@@ -2,13 +2,12 @@ import { type Case, formatBytes, formatDate } from "@/lib/mock-data"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 
+// PDF v3 — data-driven forensic flags + grouped metadata subsections
 function generateReportHTML(caseData: Case): string {
   const reportNumber = caseData.id.replace("chk_", "").toUpperCase()
-  const reportDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+  const now = new Date()
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  const reportDate = `${months[now.getUTCMonth()]} ${now.getUTCDate()}, ${now.getUTCFullYear()}`
   const details = caseData.details
   const isSuspicious = caseData.verdict === "fake"
   const isUncertain = caseData.verdict === "uncertain"
@@ -26,51 +25,44 @@ function generateReportHTML(caseData: Case): string {
   const criticalCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "critical").length || 0
   const suspectCount = details?.forensic_analysis?.filter((f: { severity: string }) => f.severity === "suspect").length || 0
 
-  // File integrity (needed early for metrics)
-  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
-
   // Key metrics for Page 1 (max 4, plain language)
   const totalFlags = criticalCount + suspectCount
   const faceResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "face_manipulation")
   const eyeResult = details?.pixel_analysis?.find((p: { type: string }) => p.type === "eye_gaze_manipulation")
-  const voiceResult = details?.voice_analysis?.[0]
 
-  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string }
-  const metrics: Metric[] = []
-  if (faceResult) {
-    metrics.push({
-      label: "Face Analysis",
-      value: faceResult.result === "suspicious" ? `${(faceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: faceResult.result === "suspicious" ? "alert" : "ok",
-      iconType: "face",
-    })
-  }
-  if (voiceResult) {
-    const voiceSus = voiceResult.result?.toLowerCase() === "suspicious"
-    metrics.push({
-      label: "Voice Analysis",
-      value: voiceSus ? `${(voiceResult.confidence * 100).toFixed(0)}%` : "Clear",
-      status: voiceSus ? "alert" : "ok",
-      iconType: "voice",
-    })
-  }
-  metrics.push(totalFlags > 0
-    ? { label: "Forensic Flags", value: `${totalFlags} signature${totalFlags !== 1 ? "s" : ""}`, status: criticalCount > 0 ? "alert" as const : "warn" as const, iconType: "forensic" }
-    : { label: "Forensic Flags", value: "None", status: "ok" as const, iconType: "forensic" }
-  )
-  const hasIntegrityData = !!details?.structural_consistency
-  const hasMetadata = !!details?.decoded_metadata
-  metrics.push({
-    label: "File Metadata",
-    value: hasIntegrityData ? (integrityPassed ? "Consistent" : "Concerns") : hasMetadata ? "Extracted" : "Limited",
-    status: hasIntegrityData ? (integrityPassed ? "ok" : "alert") : "ok",
-    iconType: "file",
-  })
+  // Check metadata suspicion from structural_analysis.signature_category and decoded_metadata encoder
+  const sigCategory = details?.structural_analysis?.signature_category
+  const hasSuspiciousSignature = sigCategory === "AI Generator" || sigCategory === "Professional Software"
+  const encoder = details?.decoded_metadata?.general?.writing_application
+  const hasSuspiciousEncoder = !!(encoder && (encoder.toLowerCase().includes("ffmpeg") || encoder.toLowerCase().includes("lavf") || encoder.toLowerCase().includes("converter") || encoder.toLowerCase().includes("after effects") || encoder.toLowerCase().includes("davinci") || encoder.toLowerCase().includes("premiere")))
+
+  // Verdict styling - must be declared before metrics array
+  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
+  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
+  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
+
+  type Metric = { label: string; value: string; status: "alert" | "warn" | "ok"; iconType: string; isVerdict?: boolean }
+  const scoreAlert = caseData.score >= 0.7
+  const metadataAlert = hasSuspiciousSignature || hasSuspiciousEncoder
+  const metrics: Metric[] = [
+    {
+      label: "Verdict",
+      value: verdictLabel,
+      status: isSuspicious ? "alert" : isUncertain ? "warn" : "ok",
+      iconType: "forensic",
+      isVerdict: true,
+    },
+    {
+      label: "File Metadata",
+      value: metadataAlert ? "Suspicious" : "Consistent",
+      status: metadataAlert ? "alert" : "ok",
+      iconType: "file",
+      isVerdict: false,
+    },
+  ]
 
   // Icon SVGs for PDF
   const iconSvgs: Record<string, (color: string) => string> = {
-    face: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="4" stroke="${c}" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="${c}" stroke-width="1.5"/></svg>`,
-    voice: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="6" y="1" width="4" height="8" rx="2" stroke="${c}" stroke-width="1.5"/><path d="M3 7c0 2.8 2.2 5 5 5s5-2.2 5-5" stroke="${c}" stroke-width="1.5"/><line x1="8" y1="12" x2="8" y2="15" stroke="${c}" stroke-width="1.5"/></svg>`,
     forensic: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 5v6l7 4 7-4V5L8 1z" stroke="${c}" stroke-width="1.5"/><path d="M8 8V5" stroke="${c}" stroke-width="1.5"/><circle cx="8" cy="10" r="0.8" fill="${c}"/></svg>`,
     file: (c) => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="14" rx="1" stroke="${c}" stroke-width="1.5"/><line x1="5" y1="5" x2="11" y2="5" stroke="${c}" stroke-width="1"/><line x1="5" y1="7.5" x2="11" y2="7.5" stroke="${c}" stroke-width="1"/><line x1="5" y1="10" x2="9" y2="10" stroke="${c}" stroke-width="1"/></svg>`,
   }
@@ -80,7 +72,6 @@ function generateReportHTML(caseData: Case): string {
   if (isSuspicious) {
     if (faceResult?.result === "suspicious") regionDescs.push({ region: "Facial region", detail: "Unnatural blending detected at jaw line boundary" })
     if (eyeResult?.result === "suspicious") regionDescs.push({ region: "Eye gaze trajectory", detail: "Inconsistent with natural movement patterns" })
-    if (voiceResult?.result?.toLowerCase() === "suspicious") regionDescs.push({ region: "Audio-visual sync", detail: "Temporal offset detected in lip movement correlation" })
     if (faceResult?.result === "suspicious") regionDescs.push({ region: "Lighting analysis", detail: "Shadow direction mismatch across facial planes" })
   }
 
@@ -149,7 +140,9 @@ function generateReportHTML(caseData: Case): string {
     if (meta.audio.channels) metaItems.push({ label: "Channels", value: `${meta.audio.channels}${meta.audio.channel_layout ? ` (${meta.audio.channel_layout})` : ""}` })
   }
 
-  // File integrity check (integrityPassed defined earlier)
+  // File integrity check (for key findings only, not shown in UI)
+  const integrityPassed = details?.structural_consistency?.modification_tests === "passed" && details?.structural_consistency?.validation_tests === "passed"
+  const hasIntegrityData = !!details?.structural_consistency
 
   // Waveform SVG for audio
   const waveformBars = Array.from({ length: 48 }).map((_, i) => {
@@ -171,9 +164,6 @@ function generateReportHTML(caseData: Case): string {
     if (eyeResult?.result === "suspicious") {
       keyFindings.push("Eye gaze trajectory indicates possible inconsistency with expected natural movement")
     }
-    if (voiceResult?.result?.toLowerCase() === "suspicious") {
-      keyFindings.push("Audio characteristics suggest the presence of patterns associated with voice synthesis")
-    }
     if (criticalCount > 0) {
       keyFindings.push("File metadata exhibits structural similarities to known AI generation tool signatures")
     }
@@ -182,19 +172,13 @@ function generateReportHTML(caseData: Case): string {
     }
   } else {
     keyFindings.push("No indicators of facial manipulation were observed in this analysis")
-    if (voiceResult && voiceResult.result?.toLowerCase() !== "suspicious") {
-      keyFindings.push("Voice characteristics appear consistent with natural speech patterns")
-    }
     keyFindings.push("File structure is consistent with known authentic capture device signatures")
     if (integrityPassed) {
       keyFindings.push("File metadata and container structure are consistent with expected encoding standards")
     }
   }
 
-  const verdictColor = isSuspicious ? '#B91C1C' : isUncertain ? '#B45309' : '#15803D'
-  const verdictBg = isSuspicious ? '#FEF2F2' : isUncertain ? '#FFFBEB' : '#F0FDF4'
   const verdictBorder = isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0'
-  const verdictLabel = isSuspicious ? 'SUSPICIOUS' : isUncertain ? 'UNCERTAIN' : 'AUTHENTIC'
 
   return `<!DOCTYPE html>
 <html>
@@ -205,7 +189,7 @@ function generateReportHTML(caseData: Case): string {
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; background: white; }
-    .page { width: 794px; height: 1123px; padding: 28px 40px 40px; position: relative; background: white; overflow: hidden; box-sizing: border-box; }
+    .page { width: 794px; min-height: 1123px; padding: 28px 40px 60px; position: relative; background: white; box-sizing: border-box; }
     .page-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #9ca3af; padding-top: 6px; border-top: 1px solid #e5e7eb; }
   </style>
 </head>
@@ -231,9 +215,8 @@ function generateReportHTML(caseData: Case): string {
           </table>
         </div>
         <div style="flex: 0 0 180px; background: ${verdictBg}; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px; border-left: 1px solid #e5e7eb;">
-          <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Confidence</div>
-          <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1; margin-bottom: 8px;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
-          <div style="height: 26px; padding: 0 16px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: center; line-height: 26px; box-sizing: border-box;">${verdictLabel}</div>
+          <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Overall Score</div>
+          <div style="font-size: 38px; font-weight: 700; color: ${verdictColor}; line-height: 1;">${confidencePercent}<span style="font-size: 20px;">%</span></div>
         </div>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 8px; color: #9ca3af; padding: 2px 0;">
@@ -242,33 +225,29 @@ function generateReportHTML(caseData: Case): string {
           <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B45309; display: inline-block;"></span>40-69% Uncertain</span>
           <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #B91C1C; display: inline-block;"></span>70-100% Suspicious</span>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <span>${caseData.content_type} &middot; ${formatBytes(caseData.file_size_bytes)}</span>
-          <span>Engine v${details?.project_info?.verify_version || '2.374'}</span>
-        </div>
+        <span style="font-family: 'IBM Plex Mono', monospace;">Engine v${details?.project_info?.verify_version || '2.374'}</span>
       </div>
     </div>
 
-    <!-- 2. Analysis Summary (3 cards) -->
+    <!-- 2. Analysis Summary (2 cards) -->
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-      ${[
-        { label: 'Face Analysis', value: faceResult?.result === 'suspicious' ? ((faceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: faceResult?.result === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.face },
-        { label: 'Voice Analysis', value: voiceResult?.result?.toLowerCase() === 'suspicious' ? ((voiceResult.confidence * 100).toFixed(0) + '%') : 'Clear', status: voiceResult?.result?.toLowerCase() === 'suspicious' ? 'alert' : 'ok', icon: iconSvgs.voice },
-        { label: 'File Metadata', value: hasIntegrityData ? (integrityPassed ? 'Consistent' : 'Concerns') : hasMetadata ? 'Extracted' : 'Limited', status: hasIntegrityData ? (integrityPassed ? 'ok' : 'alert') : 'ok', icon: iconSvgs.file },
-      ].map((card) => {
-        const cc = card.status === 'alert' ? '#B91C1C' : '#15803D'
-        const cb = card.status === 'alert' ? '#FEF2F2' : '#F0FDF4'
-        const cbd = card.status === 'alert' ? '#FECACA' : '#BBF7D0'
+      ${metrics.map((card) => {
+        const cc = card.isVerdict ? verdictColor : (card.status === 'alert' ? '#B91C1C' : '#15803D')
+        const cb = card.isVerdict ? verdictBg : (card.status === 'alert' ? '#FEF2F2' : '#F0FDF4')
+        const cbd = card.isVerdict ? (isSuspicious ? '#FECACA' : isUncertain ? '#FDE68A' : '#BBF7D0') : (card.status === 'alert' ? '#FECACA' : '#BBF7D0')
         const checkIcon = card.status === 'ok'
           ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#DCFCE7" stroke="#22C55E" stroke-width="1"/><path d="M5 8l2 2 4-4" stroke="#15803D" stroke-width="1.5" fill="none"/></svg>'
           : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="#FEE2E2" stroke="#EF4444" stroke-width="1"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#B91C1C" stroke-width="1.5"/></svg>'
+        const valueHtml = card.isVerdict
+          ? `<div style="display: inline-block; padding: 2px 10px; border-radius: 4px; background: ${verdictColor}; color: #fff; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px;">${card.value}</div>`
+          : `<div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>`
         return `<div style="flex: 1; padding: 7px 10px; background: ${cb}; border: 1px solid ${cbd}; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
-          ${card.icon(cc)}
+          ${iconSvgs[card.iconType](cc)}
           <div style="flex: 1;">
             <div style="font-size: 8px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">${card.label}</div>
-            <div style="font-size: 13px; font-weight: 700; color: ${cc}; line-height: 1.2;">${card.value}</div>
+            ${valueHtml}
           </div>
-          ${checkIcon}
+          ${card.isVerdict ? '' : checkIcon}
         </div>`
       }).join('')}
     </div>
@@ -376,46 +355,85 @@ function generateReportHTML(caseData: Case): string {
     <div style="display: flex; gap: 8px; margin-bottom: 6px;">
       <div style="flex: 1.4; display: flex; flex-direction: column;">
         <div style="font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Forensic Flags</div>
-        ${isSuspicious || isUncertain ? `
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEE2E2; border-left: 4px solid #DC2626; border-radius: 4px;">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>
-            <div>
-              <div style="font-size: 9px; font-weight: 700; color: #991B1B; line-height: 1.3;">High confidence of AI-generated content detected</div>
-              <div style="font-size: 8px; color: #7F1D1D; line-height: 1.4; margin-top: 2px;">Signatures consistent with known deepfake generation tools found in file structure</div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 4px;">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>
-            <div>
-              <div style="font-size: 9px; font-weight: 700; color: #92400E; line-height: 1.3;">Video converter/encoder signatures detected</div>
-              <div style="font-size: 8px; color: #78350F; line-height: 1.4; margin-top: 2px;">FFmpeg, Bluesky</div>
-            </div>
-          </div>
-        </div>
-        ` : `
-        <div style="display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #D1FAE5; border-left: 4px solid #10B981; border-radius: 4px;">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink: 0; margin-top: 1px;"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div>
-            <div style="font-size: 9px; font-weight: 700; color: #065F46; line-height: 1.3;">No forensic flags detected</div>
-            <div style="font-size: 8px; color: #047857; line-height: 1.4; margin-top: 2px;">File structure analysis found no signatures associated with AI generation or suspicious editing tools</div>
-          </div>
-        </div>
-        `}
+        ${(() => {
+          const pdfFlags: { type: string; title: string; description: string }[] = []
+          const pdfSigCat = details?.structural_analysis?.signature_category
+          const pdfEncoder = meta?.general?.writing_application
+          const pdfIsProSw = pdfSigCat === 'Professional Software'
+          const pdfIsAiGen = pdfSigCat === 'AI Generator'
+          const pdfHasSusEnc = !!(pdfEncoder && (pdfEncoder.toLowerCase().includes('ffmpeg') || pdfEncoder.toLowerCase().includes('lavf') || pdfEncoder.toLowerCase().includes('converter')))
+
+          if (isSuspicious) {
+            pdfFlags.push({ type: 'red', title: 'Deepfake detected', description: 'AI-generated content detected by the model' })
+          }
+          if (pdfIsAiGen && !isSuspicious) {
+            pdfFlags.push({ type: 'red', title: 'AI generator detected', description: 'Metadata indicates the video was generated by AI' })
+          }
+          if (pdfIsProSw) {
+            pdfFlags.push({ type: 'amber', title: 'Professional software detected', description: 'Metadata indicates professional editing software (e.g. Adobe After Effects)' })
+          }
+          if (pdfHasSusEnc) {
+            pdfFlags.push({ type: 'amber', title: 'Suspicious metadata', description: 'Missing camera data, encoding mismatches, or signs of video conversion' })
+          }
+          if (pdfFlags.length === 0) {
+            pdfFlags.push({ type: 'green', title: 'No issues detected', description: 'No errors found' })
+          }
+
+          return '<div style="display: flex; flex-direction: column; gap: 6px;">' + pdfFlags.map(f => {
+            const bg = f.type === 'red' ? '#FEE2E2' : f.type === 'amber' ? '#FEF3C7' : '#D1FAE5'
+            const border = f.type === 'red' ? '#DC2626' : f.type === 'amber' ? '#F59E0B' : '#10B981'
+            const titleC = f.type === 'red' ? '#991B1B' : f.type === 'amber' ? '#92400E' : '#065F46'
+            const descC = f.type === 'red' ? '#7F1D1D' : f.type === 'amber' ? '#78350F' : '#047857'
+            const icon = f.type === 'red'
+              ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="7" cy="7" r="6" fill="#DC2626"/><text x="7" y="10.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">i</text></svg>'
+              : f.type === 'amber'
+              ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><path d="M7 1L1 12h12L7 1z" fill="#F59E0B" stroke="#D97706" stroke-width="0.5"/><text x="7" y="10.5" text-anchor="middle" fill="#78350F" font-size="8" font-weight="700">!</text></svg>'
+              : '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;margin-top:1px"><circle cx="7" cy="7" r="6" fill="#10B981"/><path d="M4.5 7L6.5 9L9.5 5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:' + bg + ';border-left:4px solid ' + border + ';border-radius:4px;">' + icon + '<div><div style="font-size:9px;font-weight:700;color:' + titleC + ';line-height:1.3">' + f.title + '</div><div style="font-size:8px;color:' + descC + ';line-height:1.4;margin-top:2px">' + f.description + '</div></div></div>'
+          }).join('') + '</div>'
+        })()}
       </div>
-      <div style="flex: 0.6; padding: 8px 10px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px;">
-        <div style="font-size: 9px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 5px;">Extracted Metadata</div>
-        ${metaItems.length > 0 ? metaItems.slice(0, 8).map(m => `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 8px; color: #6b7280;">${m.label}</span>
-          <span style="font-size: 8px; color: #374151; font-weight: 500; font-family: monospace;">${m.value}</span>
-        </div>`).join('') : '<div style="font-size: 9px; color: #6b7280;">No metadata available</div>'}
-        ${hasIntegrityData ? `
-        <div style="display: flex; align-items: center; gap: 5px; margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${integrityPassed ? '#F0FDF4' : '#FEF2F2'}; border: 1px solid ${integrityPassed ? '#BBF7D0' : '#FECACA'};">
-          <div style="width: 5px; height: 5px; border-radius: 50%; background: ${integrityPassed ? '#22C55E' : '#EF4444'};"></div>
-          <span style="font-size: 7.5px; font-weight: 500; color: ${integrityPassed ? '#15803D' : '#B91C1C'};">File integrity: ${integrityPassed ? 'All structural checks passed' : 'Integrity concerns noted'}</span>
-        </div>` : ''}
-      </div>
+      ${(() => {
+        const metaSections: { heading: string; rows: { label: string; value: string }[] }[] = []
+        const vRows: { label: string; value: string }[] = []
+        if (meta?.video) {
+          if (meta.video.codec_id || meta.video.format) vRows.push({ label: 'Codec', value: meta.video.format ? meta.video.format + ' (' + (meta.video.codec_id || '') + ')' : (meta.video.codec_id || '\u2014') })
+          if (meta.video.width && meta.video.height) vRows.push({ label: 'Resolution', value: meta.video.width + ' x ' + meta.video.height })
+          if (meta.video.frame_rate) vRows.push({ label: 'Frame Rate', value: meta.video.frame_rate })
+        }
+        if (meta?.general) {
+          if (meta.general.overall_bit_rate) vRows.push({ label: 'Bitrate', value: meta.general.overall_bit_rate })
+          if (meta.general.duration) vRows.push({ label: 'Duration', value: meta.general.duration })
+        }
+        if (meta?.audio?.sampling_rate) vRows.push({ label: 'Sample Rate', value: meta.audio.sampling_rate })
+        if (vRows.length > 0) metaSections.push({ heading: 'Video Stream', rows: vRows })
+        const cRows: { label: string; value: string }[] = []
+        if (meta?.general?.format) cRows.push({ label: 'Format', value: meta.general.format + (meta.general.format_profile ? ' (' + meta.general.format_profile + ')' : '') })
+        if (meta?.general?.writing_application) cRows.push({ label: 'Encoder', value: meta.general.writing_application })
+        if (cRows.length > 0) metaSections.push({ heading: 'Container', rows: cRows })
+        const prov = details?.provenance
+        if (prov) {
+          const pRows: { label: string; value: string }[] = []
+          if (prov.camera_make) pRows.push({ label: 'Camera Make', value: prov.camera_make })
+          if (prov.camera_model) pRows.push({ label: 'Camera Model', value: prov.camera_model })
+          if (prov.software) pRows.push({ label: 'Software', value: prov.software })
+          if (prov.creation_date) pRows.push({ label: 'Creation Date', value: prov.creation_date })
+          if (prov.gps_location) pRows.push({ label: 'GPS Location', value: prov.gps_location })
+          if (pRows.length > 0) metaSections.push({ heading: 'Provenance', rows: pRows })
+        }
+
+        if (metaSections.length === 0) {
+          return '<div style="flex:0.6;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px"><div style="font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:5px">Extracted Metadata</div><div style="font-size:9px;color:#6b7280">No metadata available</div></div>'
+        }
+        return '<div style="flex:0.6;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px">' +
+          '<div style="padding:6px 10px 3px;font-size:9px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.3px">Extracted Metadata</div>' +
+          metaSections.map((sec, si) =>
+            '<div style="padding:4px 10px 2px;font-size:7.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.6px">' + sec.heading + '</div>' +
+            sec.rows.map((r, i) =>
+              '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 10px;background:' + (i % 2 === 0 ? '#f8fafc' : '#ffffff') + ';border-bottom:' + (i < sec.rows.length - 1 || si < metaSections.length - 1 ? '1px solid #f0f1f3' : 'none') + '"><span style="font-size:8px;color:#6b7280">' + r.label + '</span><span style="font-size:8px;color:#374151;font-weight:500;font-family:monospace">' + r.value + '</span></div>'
+            ).join('')
+          ).join('') + '</div>'
+      })()}
     </div>
 
     <!-- Footer -->
@@ -427,6 +445,107 @@ function generateReportHTML(caseData: Case): string {
     <div class="page-footer">
       <span>DataSpike Deepfake Detection Report</span>
       <span>Page 1 of 3</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Methodology & Scope -->
+  <div class="page" style="page-break-before: always;">
+    <!-- Header Bar -->
+    <div style="background: #1a1f36; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; margin: -28px -40px 20px -40px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 24px; height: 24px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 9px;">DS</div>
+        <span style="font-size: 14px; font-weight: 600; color: #ffffff;">DataSpike</span>
+      </div>
+      <span style="font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing: 0.5px;">Methodology & Scope</span>
+    </div>
+
+    <!-- Section 1: Interpreting the Results -->
+    <div style="background: #f0f4f8; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Interpreting the Results</h2>
+      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+        <tr style="background: #ffffff;">
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Overall Score</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">The maximum smoothed frame-level manipulation probability across the analyzed video. Calculated as max(smoothed frame-level probabilities). Higher values indicate stronger likelihood of synthetic or manipulated content.</td>
+        </tr>
+        <tr style="background: #f8fafc;">
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Verdict</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Derived from the Overall Score with the following thresholds: Authentic (score &lt; 40%) — no significant indicators of manipulation detected. Uncertain (score 40–60%) — mixed or inconclusive signals; manual review recommended. Deepfake (score &gt; 60%) — strong indicators of synthetic or manipulated content detected. The primary verdict source is the detection model. Metadata errors alone do not change the verdict, except: MetadataAiGeneratorDetected elevates the verdict to Deepfake regardless of the model score.</td>
+        </tr>
+        <tr style="background: #ffffff;">
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">File Metadata</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">Structural and embedded information extracted from the file via FFprobe and EXIF/XMP analysis. Error codes: DeepfakeDetected — deepfake detected by model (affects verdict). MetadataAiGeneratorDetected — AI generator signatures in metadata (affects verdict → Deepfake). MetadataProfessionalSoftware — professional editing software detected (informational only). SuspiciousMetadata — missing camera data or encoding mismatches (informational only). NoFaceDetected — no detectable face found (verdict → Failed). DeepfakeModelUncertain — model score near threshold (verdict → Uncertain). Only DeepfakeDetected and MetadataAiGeneratorDetected change the verdict.</td>
+        </tr>
+        <tr style="background: #f8fafc;">
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Heatmap</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">A Grad-CAM visualization showing which spatial regions of a frame contributed most to the model's prediction. Red areas indicate highest model attention.</td>
+        </tr>
+        <tr style="background: #ffffff;">
+          <td style="padding: 10px 12px; font-weight: 600; color: #374151; width: 180px; vertical-align: top; border-bottom: 1px solid #e5e7eb;">Top Frames</td>
+          <td style="padding: 10px 12px; color: #4b5563; line-height: 1.5; border-bottom: 1px solid #e5e7eb;">The three frames with the highest individual manipulation probability, selected with a minimum 0.5-second interval to ensure independent sampling.</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Section 2: Detection Methodology -->
+    <div style="margin-bottom: 24px;">
+      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Detection Methodology</h2>
+      <div style="font-size: 10px; color: #374151; line-height: 1.7;">
+        <p style="margin-bottom: 10px;">DataSpike's deepfake detection pipeline combines frame-level deep neural network analysis with temporal smoothing and metadata forensics. Each video frame is independently evaluated by a CNN-based classifier trained on diverse manipulation techniques including face-swap, face-reenactment, and fully synthetic generation. Frame-level probabilities are temporally smoothed to produce a robust overall score, calculated as max(smoothed_probs).</p>
+        <p style="margin-bottom: 10px;">Metadata analysis examines container-level, encoding, and provenance information extracted via FFprobe and EXIF/XMP parsers. Flags are generated when signatures of professional editing software, AI generation tools, or encoding inconsistencies are detected.</p>
+        <p style="margin-bottom: 10px;">Visual interpretability is provided through Grad-CAM heatmaps, which highlight spatial regions that most influenced the model's prediction for a given frame.</p>
+        <p>The model is optimized for face-based manipulation detection. A NoFaceDetected error is raised when no frames contain a detectable face.</p>
+      </div>
+    </div>
+
+    <!-- Section 3: Scope & Limitations -->
+    <div style="margin-bottom: 24px;">
+      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Scope & Limitations</h2>
+      <div style="font-size: 10px; color: #374151; line-height: 1.7;">
+        <p style="margin-bottom: 10px;">This analysis is automated and probabilistic. Results reflect the model's assessment based on the submitted media file and should not be treated as a definitive legal determination of authenticity or manipulation.</p>
+        <p style="margin-bottom: 8px; font-weight: 600;">Limitations to consider:</p>
+        <ul style="margin-left: 16px; margin-bottom: 10px;">
+          <li style="margin-bottom: 4px;">Detection accuracy depends on input quality, resolution, and encoding. Re-encoded or heavily compressed media may yield lower confidence scores.</li>
+          <li style="margin-bottom: 4px;">The model is optimized for face-based manipulation detection. Non-facial manipulations (e.g., background editing, object insertion) may not be detected.</li>
+          <li style="margin-bottom: 4px;">Metadata flags rely on available container and encoding information. Files that have been stripped of metadata or re-packaged may not trigger forensic flags.</li>
+          <li style="margin-bottom: 4px;">Novel manipulation techniques not represented in training data may evade detection.</li>
+        </ul>
+        <p><strong style="color: #1e293b;">Final determination of content authenticity remains the sole responsibility of the reviewing party.</strong> This report is intended as supporting evidence for compliance and investigative workflows.</p>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
+      <span>Page 2 of 3</span>
+      <span>© 2025 DataSpike. All rights reserved.</span>
+    </div>
+  </div>
+
+  <!-- PAGE 3: References -->
+  <div class="page" style="page-break-before: always;">
+    <!-- Header Bar -->
+    <div style="background: #1a1f36; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; margin: -28px -40px 20px -40px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 24px; height: 24px; background: #4A7BF7; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 9px;">DS</div>
+        <span style="font-size: 14px; font-weight: 600; color: #ffffff;">DataSpike</span>
+      </div>
+      <span style="font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing: 0.5px;">Methodology & Scope</span>
+    </div>
+
+    <!-- References -->
+    <div style="margin-bottom: 40px;">
+      <h2 style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">References</h2>
+      <ol style="font-size: 9px; color: #4b5563; line-height: 1.6; margin-left: 16px;">
+        <li style="margin-bottom: 6px;">Rössler, A., Cozzolino, D., Verdoliva, L., Riess, C., Thies, J., & Nießner, M. (2019). FaceForensics++: Learning to Detect Manipulated Facial Images. IEEE/CVF International Conference on Computer Vision (ICCV). <a href="https://doi.org/10.1109/ICCV.2019.00009" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/ICCV.2019.00009</a></li>
+        <li style="margin-bottom: 6px;">Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., & Batra, D. (2017). Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization. IEEE/CVF International Conference on Computer Vision (ICCV). <a href="https://doi.org/10.1109/ICCV.2017.74" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/ICCV.2017.74</a></li>
+        <li style="margin-bottom: 6px;">Verdoliva, L. (2020). Media Forensics and DeepFakes: An Overview. IEEE Journal of Selected Topics in Signal Processing, 14(5), 910–932. <a href="https://doi.org/10.1109/JSTSP.2020.3002101" style="color: #2563eb; text-decoration: underline;">https://doi.org/10.1109/JSTSP.2020.3002101</a></li>
+      </ol>
+      <p style="font-size: 8px; color: #9ca3af; font-style: italic; margin-top: 10px;">Full technical documentation and model specifications available upon request.</p>
+    </div>
+
+    <div class="page-footer">
+      <span style="letter-spacing: 1px; font-weight: 600; color: #6b7280;">CONFIDENTIAL</span>
+      <span>Page 3 of 3</span>
+      <span>© 2025 DataSpike. All rights reserved.</span>
     </div>
   </div>
 </body>

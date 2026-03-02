@@ -1,4 +1,9 @@
-export function ReportFooter() {
+interface ReportFooterProps {
+  pageNumber?: number
+  totalPages?: number
+}
+
+export function ReportFooter({ pageNumber = 1, totalPages = 2 }: ReportFooterProps) {
   return (
     <>
       {/* Disclaimer + CONFIDENTIAL */}
@@ -47,7 +52,7 @@ export function ReportFooter() {
         }}
       >
         <span>DataSpike Deepfake Detection Report</span>
-        <span>Page 1 of 1</span>
+        <span>Page {pageNumber} of {totalPages}</span>
       </div>
     </>
   )

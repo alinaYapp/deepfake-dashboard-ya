@@ -150,17 +150,16 @@ export function formatTimestamp(seconds: number): string {
 export function formatSubmissionDate(iso: string): string {
   const d = new Date(iso)
   const months = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December",
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec",
   ]
   const month = months[d.getUTCMonth()]
   const day = d.getUTCDate()
-  const year = d.getUTCFullYear()
   const h = d.getUTCHours()
   const m = d.getUTCMinutes()
   const ampm = h >= 12 ? "PM" : "AM"
   const hour12 = h % 12 || 12
-  return `${month} ${day}, ${year}, ${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`
+  return `${month} ${day}, ${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`
 }
 
 // ── Mock datasets ─────────────────────────────────────────────────
@@ -215,7 +214,7 @@ export const mockAuthenticReport: DeepfakeReport = {
     },
     container: {
       format: "MPEG-4 (Base Media)",
-      encoder: "Lavf59.27.100",
+      encoder: "Apple iPhone 15 Pro",
     },
     provenance: {
       camera_make: "Apple",
