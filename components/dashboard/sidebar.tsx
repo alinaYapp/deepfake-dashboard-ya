@@ -14,6 +14,7 @@ import {
   HelpCircle,
   BookOpen,
   ExternalLink,
+  Play,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -139,6 +140,27 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 })}
               </ul>
             </div>
+          </li>
+
+          {/* Demo */}
+          <li>
+            <button
+              onClick={() => onTabChange("demo")}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                activeTab === "demo"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              )}
+            >
+              <Play className="h-4 w-4" />
+              <span className="flex-1 text-left">Demo</span>
+              {activeTab !== "demo" && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary text-primary-foreground">
+                  NEW
+                </span>
+              )}
+            </button>
           </li>
         </ul>
       </nav>
