@@ -302,22 +302,6 @@ export function DemoTab() {
 
                   <div>
                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                      Models used
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {currentScenario.models.map((model) => (
-                        <span
-                          key={model}
-                          className="px-2.5 py-1 rounded-full bg-[#F0F1FA] text-xs font-medium text-foreground"
-                        >
-                          {model}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                       Expected result
                     </h3>
                     <div className="flex items-center gap-2">
@@ -582,10 +566,6 @@ export function DemoTab() {
                 <div className="flex justify-between py-3">
                   <span className="text-sm text-muted-foreground">Check Type</span>
                   <span className="text-sm font-medium text-foreground">{currentScenario.result.checkType}</span>
-                </div>
-                <div className="flex justify-between py-3">
-                  <span className="text-sm text-muted-foreground">Model</span>
-                  <span className="text-sm font-medium text-foreground">{currentScenario.result.model}</span>
                 </div>
                 <div className="flex justify-between py-3">
                   <span className="text-sm text-muted-foreground">Error Code</span>
