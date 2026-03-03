@@ -19,6 +19,7 @@ import {
   File,
   Video,
   Image,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -36,8 +37,10 @@ const scenarioData = {
     models: ["FaceForensics++", "Liveness v3.2", "Temporal Analysis"],
     expectedResult: "Verdict: FAKE — deepfake detected with high confidence",
     testFiles: [
-      { name: "selfie_video.mp4", size: "2.4 MB", type: "video" },
-      { name: "face_crop.jpg", size: "156 KB", type: "image" },
+      { name: "selfie_deepfake_01.mp4", size: "12.4 MB", type: "video" },
+      { name: "selfie_deepfake_02.mp4", size: "8.7 MB", type: "video" },
+      { name: "liveness_spoof_01.webm", size: "6.2 MB", type: "video" },
+      { name: "face_swap_video.mp4", size: "15.1 MB", type: "video" },
     ],
     result: {
       verdict: "FAKE",
@@ -61,6 +64,8 @@ const scenarioData = {
     testFiles: [
       { name: "passport_scan.jpg", size: "1.8 MB", type: "image" },
       { name: "drivers_license.jpg", size: "892 KB", type: "image" },
+      { name: "national_id_front.png", size: "2.1 MB", type: "image" },
+      { name: "residence_permit.jpg", size: "1.4 MB", type: "image" },
     ],
     result: {
       verdict: "FAKE",
@@ -89,6 +94,7 @@ const processingSteps = [
 export function DemoTab() {
   const [screen, setScreen] = useState<DemoScreen>("selection")
   const [scenario, setScenario] = useState<Scenario>(null)
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [activeStep, setActiveStep] = useState(0)
@@ -155,6 +161,7 @@ export function DemoTab() {
 
   const handleSelectScenario = (selected: Scenario) => {
     setScenario(selected)
+    setSelectedFileIndex(0)
     setScreen("detail")
   }
 
@@ -181,6 +188,7 @@ export function DemoTab() {
   }
 
   const currentScenario = scenario ? scenarioData[scenario] : null
+  const selectedFile = currentScenario?.testFiles[selectedFileIndex] || null
 
   return (
     <div className="min-h-[calc(100vh-120px)] relative">
@@ -322,22 +330,40 @@ export function DemoTab() {
 
               {/* Test Data Card */}
               <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Test Data</h2>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Test Data</h2>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {currentScenario.testFiles.map((file) => (
-                    <div key={file.name} className="rounded-lg bg-[#F0F1FA] p-4">
-                      <div className="aspect-video rounded-md bg-slate-200 mb-3 flex items-center justify-center">
-                        {file.type === "video" ? (
-                          <Video className="h-8 w-8 text-slate-400" />
-                        ) : (
-                          <Image className="h-8 w-8 text-slate-400" />
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {currentScenario.testFiles.map((file, index) => {
+                    const isSelected = selectedFileIndex === index
+                    return (
+                      <button
+                        key={file.name}
+                        onClick={() => setSelectedFileIndex(index)}
+                        className={cn(
+                          "relative rounded-lg p-3 text-left transition-all duration-200",
+                          isSelected
+                            ? "bg-primary/5 border-2 border-primary"
+                            : "bg-[#F0F1FA] border-2 border-transparent hover:border-primary/30"
                         )}
-                      </div>
-                      <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{file.size}</p>
-                    </div>
-                  ))}
+                      >
+                        {/* Checkmark */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+                        <div className="aspect-[4/3] rounded-md bg-slate-200 mb-2 flex items-center justify-center">
+                          {file.type === "video" ? (
+                            <Video className="h-6 w-6 text-slate-400" />
+                          ) : (
+                            <Image className="h-6 w-6 text-slate-400" />
+                          )}
+                        </div>
+                        <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{file.size}</p>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 <Button
@@ -379,7 +405,10 @@ export function DemoTab() {
               <span className="text-8xl font-bold text-foreground rotate-[-15deg]">DEMO</span>
             </div>
 
-            <h2 className="text-xl font-semibold text-foreground mb-8">Running analysis...</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Running analysis...</h2>
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground mb-8">Analyzing: {selectedFile.name}</p>
+            )}
 
             {/* Progress Bar */}
             <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-8">
@@ -438,7 +467,7 @@ export function DemoTab() {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="max-w-4xl mx-auto">
             {/* Back Link */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <button
                 onClick={handleTryAnother}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -447,6 +476,9 @@ export function DemoTab() {
                 Back to scenarios
               </button>
             </div>
+            {selectedFile && (
+              <p className="text-sm text-muted-foreground mb-6">Results for: <span className="font-medium text-foreground">{selectedFile.name}</span></p>
+            )}
 
             {/* Verdict Banner */}
             <div className="rounded-xl border border-border bg-card p-6 mb-6">
@@ -659,7 +691,7 @@ export function DemoTab() {
       {/* Test Data Modal */}
       {showTestDataModal && currentScenario && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background rounded-2xl p-6 w-full max-w-2xl mx-4 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-3xl mx-4 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-foreground">Test Data Preview</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowTestDataModal(false)}>
@@ -667,20 +699,37 @@ export function DemoTab() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              {currentScenario.testFiles.map((file) => (
-                <div key={file.name} className="rounded-lg border border-border p-4">
-                  <div className="aspect-video rounded-md bg-slate-100 mb-3 flex items-center justify-center">
-                    {file.type === "video" ? (
-                      <Video className="h-12 w-12 text-slate-400" />
-                    ) : (
-                      <Image className="h-12 w-12 text-slate-400" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {currentScenario.testFiles.map((file, index) => {
+                const isSelected = selectedFileIndex === index
+                return (
+                  <button
+                    key={file.name}
+                    onClick={() => setSelectedFileIndex(index)}
+                    className={cn(
+                      "relative rounded-lg p-4 text-left transition-all duration-200",
+                      isSelected
+                        ? "bg-primary/5 border-2 border-primary"
+                        : "border border-border hover:border-primary/30"
                     )}
-                  </div>
-                  <p className="text-sm font-medium text-foreground">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{file.size}</p>
-                </div>
-              ))}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <div className="aspect-video rounded-md bg-slate-100 mb-3 flex items-center justify-center">
+                      {file.type === "video" ? (
+                        <Video className="h-10 w-10 text-slate-400" />
+                      ) : (
+                        <Image className="h-10 w-10 text-slate-400" />
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">{file.size}</p>
+                  </button>
+                )
+              })}
             </div>
 
             <p className="text-xs text-muted-foreground mt-4 text-center">
