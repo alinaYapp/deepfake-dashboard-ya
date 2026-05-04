@@ -12,7 +12,7 @@ import { mockKPIs, mockTrends, mockDistribution, mockCases, type Case, type KPID
 
 function getDefaultRange(): DateRange {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30)
+  const from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
   return { from, to: now }
 }
 
@@ -20,7 +20,7 @@ export function OverviewTab() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(getDefaultRange)
-  const [activePreset, setActivePreset] = useState<PresetKey>("30d")
+  const [activePreset, setActivePreset] = useState<PresetKey>("1y")
   const [cases, setCases] = useState<Case[]>(mockCases)
 
   const handleViewCase = (caseData: Case) => {
