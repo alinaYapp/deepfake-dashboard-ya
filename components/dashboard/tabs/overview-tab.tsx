@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import type { DateRange } from "react-day-picker"
 import { KPICards } from "@/components/dashboard/kpi-cards"
 import { DeepfakeTrendChart } from "@/components/dashboard/charts/deepfake-trend-chart"
@@ -10,18 +10,19 @@ import { CaseDrawer } from "@/components/dashboard/case-drawer"
 import { DateRangePicker, type PresetKey } from "@/components/dashboard/date-range-picker"
 import { mockKPIs, mockTrends, mockDistribution, mockCases, type Case, type KPIData } from "@/lib/mock-data"
 
-function getDefaultRange(): DateRange {
-  const now = new Date()
-  const from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
-  return { from, to: now }
-}
-
 export function OverviewTab() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(getDefaultRange)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [activePreset, setActivePreset] = useState<PresetKey>("1y")
   const [cases, setCases] = useState<Case[]>(mockCases)
+
+  // Initialize date range on client only to avoid hydration mismatch
+  useEffect(() => {
+    const now = new Date()
+    const from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+    setDateRange({ from, to: now })
+  }, [])
 
   const handleViewCase = (caseData: Case) => {
     setSelectedCase(caseData)
