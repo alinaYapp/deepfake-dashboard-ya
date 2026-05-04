@@ -251,18 +251,18 @@ export const mockKPIs: KPIData = {
 }
 
 export const mockTrends: TrendDataPoint[] = [
-  { date: "2025-03-01", deepfakes: 40, total: 3800 },
-  { date: "2025-04-01", deepfakes: 48, total: 4100 },
-  { date: "2025-05-01", deepfakes: 55, total: 4600 },
-  { date: "2025-06-01", deepfakes: 62, total: 5000 },
-  { date: "2025-07-01", deepfakes: 71, total: 5300 },
-  { date: "2025-08-01", deepfakes: 78, total: 5700 },
-  { date: "2025-09-01", deepfakes: 85, total: 6100 },
-  { date: "2025-10-01", deepfakes: 95, total: 6500 },
-  { date: "2025-11-01", deepfakes: 108, total: 7000 },
-  { date: "2025-12-01", deepfakes: 120, total: 7600 },
-  { date: "2026-01-01", deepfakes: 134, total: 8100 },
-  { date: "2026-02-01", deepfakes: 142, total: 8500 },
+  { date: "2025-06-01", deepfakes: 40, total: 3800 },
+  { date: "2025-07-01", deepfakes: 48, total: 4100 },
+  { date: "2025-08-01", deepfakes: 55, total: 4600 },
+  { date: "2025-09-01", deepfakes: 62, total: 5000 },
+  { date: "2025-10-01", deepfakes: 71, total: 5300 },
+  { date: "2025-11-01", deepfakes: 78, total: 5700 },
+  { date: "2025-12-01", deepfakes: 85, total: 6100 },
+  { date: "2026-01-01", deepfakes: 95, total: 6500 },
+  { date: "2026-02-01", deepfakes: 108, total: 7000 },
+  { date: "2026-03-01", deepfakes: 120, total: 7600 },
+  { date: "2026-04-01", deepfakes: 134, total: 8100 },
+  { date: "2026-05-01", deepfakes: 142, total: 8500 },
 ]
 
 export const mockDistribution: DistributionData = {
