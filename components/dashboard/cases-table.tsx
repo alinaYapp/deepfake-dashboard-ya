@@ -133,7 +133,7 @@ export function CasesTable({ cases, onViewCase, onUpdateCase, filterByType }: Ca
 
   return (
     <>
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-[0.5px] border-border rounded-xl">
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base font-medium">Recent Checks</CardTitle>
@@ -237,9 +237,8 @@ export function CasesTable({ cases, onViewCase, onUpdateCase, filterByType }: Ca
                 </SelectContent>
               </Select>
               <Button
-                variant="outline"
                 size="sm"
-                className="gap-2 bg-transparent"
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => void downloadBulkReport(filteredCases)}
               >
                 <Download className="h-4 w-4" />
@@ -253,16 +252,16 @@ export function CasesTable({ cases, onViewCase, onUpdateCase, filterByType }: Ca
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Check ID</TableHead>
-                  <TableHead className="text-muted-foreground">Thumbnail</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Type</TableHead>
-                  <TableHead className="text-muted-foreground">Content</TableHead>
-                  <TableHead className="text-muted-foreground">Size</TableHead>
-                  <TableHead className="text-muted-foreground">Score</TableHead>
-                  <TableHead className="text-muted-foreground">Verdict</TableHead>
-                  <TableHead className="text-muted-foreground">Created</TableHead>
-                  <TableHead className="text-muted-foreground">Action</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Check ID</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Thumbnail</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Status</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Type</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Content</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Size</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Score</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Verdict</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Created</TableHead>
+                  <TableHead className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -275,7 +274,7 @@ export function CasesTable({ cases, onViewCase, onUpdateCase, filterByType }: Ca
                 ) : (
                   filteredCases.map((caseData) => (
                     <TableRow key={caseData.id} className="border-border">
-                      <TableCell className="font-mono text-sm">{caseData.id}</TableCell>
+                      <TableCell className="font-mono text-[13px] text-muted-foreground">{caseData.id}</TableCell>
                       <TableCell>
                         <div className="relative h-10 w-10 overflow-hidden rounded-md bg-secondary">
                           <Image
