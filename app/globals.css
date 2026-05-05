@@ -5,52 +5,52 @@
 
 /* Light theme for Data Spike deepfake detection dashboard */
 :root {
-  --background: oklch(0.985 0.002 260);
-  --foreground: oklch(0.145 0.015 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.015 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.015 260);
-  --primary: oklch(0.55 0.2 250);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0.005 260);
-  --secondary-foreground: oklch(0.25 0.015 260);
-  --muted: oklch(0.94 0.005 260);
-  --muted-foreground: oklch(0.45 0.01 260);
-  --accent: oklch(0.55 0.2 250);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.9 0.005 260);
-  --input: oklch(0.96 0.005 260);
-  --ring: oklch(0.55 0.2 250);
+  --background: #f5f5f3;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #378ADD;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f3;
+  --secondary-foreground: #3a3a3a;
+  --muted: #e8e8e6;
+  --muted-foreground: #6b6b6b;
+  --accent: #378ADD;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e0e0de;
+  --input: #f5f5f3;
+  --ring: #378ADD;
 
   /* Status colors */
-  --success: oklch(0.55 0.18 145);
-  --success-foreground: oklch(0.98 0 0);
-  --warning: oklch(0.7 0.15 70);
-  --warning-foreground: oklch(0.25 0.05 70);
-  --danger: oklch(0.55 0.22 25);
-  --danger-foreground: oklch(0.98 0 0);
+  --success: #1D9E75;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #1a1a1a;
+  --danger: #dc2626;
+  --danger-foreground: #ffffff;
 
-  /* Chart colors */
-  --chart-1: oklch(0.55 0.2 250);
-  --chart-2: oklch(0.55 0.18 145);
-  --chart-3: oklch(0.7 0.15 70);
-  --chart-4: oklch(0.55 0.22 25);
-  --chart-5: oklch(0.6 0.15 300);
+  /* Chart colors - matching spec */
+  --chart-1: #378ADD;
+  --chart-2: #1D9E75;
+  --chart-3: #7F77DD;
+  --chart-4: #B4B2A9;
+  --chart-5: #d97706;
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
   /* Light sidebar */
-  --sidebar: oklch(0.98 0.002 260);
-  --sidebar-foreground: oklch(0.2 0.015 260);
-  --sidebar-primary: oklch(0.55 0.2 250);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.005 260);
-  --sidebar-accent-foreground: oklch(0.15 0.015 260);
-  --sidebar-border: oklch(0.9 0.005 260);
-  --sidebar-ring: oklch(0.55 0.2 250);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #378ADD;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f3;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e0e0de;
+  --sidebar-ring: #378ADD;
 }
 
 @theme inline {
