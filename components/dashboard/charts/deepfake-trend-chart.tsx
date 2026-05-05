@@ -100,30 +100,30 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={formattedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0de" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
-                axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
+                tick={{ fill: "#6b6b6b", fontSize: 12 }}
+                axisLine={{ stroke: "#e0e0de" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "oklch(0.6 0 0)", fontSize: 12 }}
-                axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
+                tick={{ fill: "#6b6b6b", fontSize: 12 }}
+                axisLine={{ stroke: "#e0e0de" }}
                 tickLine={false}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "oklch(0.17 0.01 260)",
-                  border: "1px solid oklch(0.28 0.01 260)",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #e0e0de",
                   borderRadius: "8px",
-                  color: "oklch(0.95 0 0)",
+                  color: "#1a1a1a",
                 }}
-                labelStyle={{ color: "oklch(0.6 0 0)" }}
+                labelStyle={{ color: "#6b6b6b" }}
               />
               <Bar
                 dataKey="count"
-                fill="oklch(0.65 0.2 250)"
+                fill="#378ADD"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -133,24 +133,24 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
         {/* Paginated Table */}
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-secondary/50">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Period</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total Checks</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Deepfakes</th>
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Period</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Checks</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Deepfakes</th>
               </tr>
             </thead>
             <tbody>
               {paginatedData.map((row, index) => (
                 <tr
                   key={row.originalDate}
-                  className={index % 2 === 0 ? "bg-card" : "bg-secondary/20"}
+                  className={index !== paginatedData.length - 1 ? "border-b border-border" : ""}
                 >
-                  <td className="px-4 py-3 text-foreground">{row.date}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
+                  <td className="px-4 py-3 text-sm text-foreground">{row.date}</td>
+                  <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                     {row.total_checks?.toLocaleString() ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-right text-foreground">
+                  <td className="px-4 py-3 text-right text-sm text-foreground">
                     {row.deepfakes?.toLocaleString() ?? row.count}
                   </td>
                 </tr>

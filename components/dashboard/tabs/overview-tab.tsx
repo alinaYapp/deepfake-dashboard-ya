@@ -14,7 +14,7 @@ export function OverviewTab() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
-  const [activePreset, setActivePreset] = useState<PresetKey>("1y")
+  const [activePreset, setActivePreset] = useState<PresetKey>("90d")
   const [cases, setCases] = useState<Case[]>(mockCases)
   
   const [statistics, setStatistics] = useState<StatisticsResponse | null>(null)
@@ -23,7 +23,7 @@ export function OverviewTab() {
   // Initialize date range on client only to avoid hydration mismatch
   useEffect(() => {
     const now = new Date()
-    const from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)
     setDateRange({ from, to: now })
   }, [])
 
