@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Shield, Activity, PenLine, BarChart3 } from "lucide-react"
+import { TrendingUp, TrendingDown, Shield, Activity, BarChart3 } from "lucide-react"
 import type { StatisticsResponse } from "@/lib/statistics-types"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -25,8 +25,8 @@ const TYPE_LABELS: Record<string, string> = {
 export function StatisticsKPICards({ data, isLoading }: StatisticsKPICardsProps) {
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -47,33 +47,6 @@ export function StatisticsKPICards({ data, isLoading }: StatisticsKPICardsProps)
     )
   }
 
-  const cards = [
-    {
-      label: "Total Checks",
-      value: data.total_checks.toLocaleString(),
-      change: `${data.total_checks_change_pct >= 0 ? "+" : ""}${data.total_checks_change_pct}%`,
-      isPositive: data.total_checks_change_pct >= 0,
-      icon: Activity,
-      description: "vs previous period",
-    },
-    {
-      label: "Deepfakes Detected",
-      value: data.deepfakes_detected.toLocaleString(),
-      change: `${data.detection_rate_pct}%`,
-      isPositive: false,
-      icon: Shield,
-      description: "Detection rate",
-    },
-    {
-      label: "Corrected Verdicts",
-      value: data.corrected_verdicts.toLocaleString(),
-      change: `${data.correction_rate_pct}%`,
-      isPositive: null,
-      icon: PenLine,
-      description: "Correction rate",
-    },
-  ]
-
   const typeData = data.detection_by_type
     ? Object.entries(data.detection_by_type).map(([key, value], index) => ({
         key,
@@ -84,47 +57,61 @@ export function StatisticsKPICards({ data, isLoading }: StatisticsKPICardsProps)
     : []
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => {
-        const Icon = card.icon
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Total Checks Card */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground">Total Checks</span>
+              <span className="text-2xl font-semibold text-foreground">
+                {data.total_checks.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+              <Activity className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            {data.total_checks_change_pct >= 0 ? (
+              <TrendingUp className="h-4 w-4 text-success" />
+            ) : (
+              <TrendingDown className="h-4 w-4 text-danger" />
+            )}
+            <span
+              className={`text-sm font-medium ${
+                data.total_checks_change_pct >= 0 ? "text-success" : "text-danger"
+              }`}
+            >
+              {data.total_checks_change_pct >= 0 ? "+" : ""}
+              {data.total_checks_change_pct}%
+            </span>
+            <span className="text-sm text-muted-foreground">vs previous period</span>
+          </div>
+        </CardContent>
+      </Card>
 
-        return (
-          <Card key={card.label} className="bg-card border-border">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm text-muted-foreground">{card.label}</span>
-                  <span className="text-2xl font-semibold text-foreground">{card.value}</span>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                {card.isPositive === null ? (
-                  <PenLine className="h-4 w-4 text-muted-foreground" />
-                ) : card.isPositive ? (
-                  <TrendingUp className="h-4 w-4 text-success" />
-                ) : (
-                  <TrendingDown className="h-4 w-4 text-danger" />
-                )}
-                <span
-                  className={`text-sm font-medium ${
-                    card.isPositive === null
-                      ? "text-muted-foreground"
-                      : card.isPositive
-                        ? "text-success"
-                        : "text-danger"
-                  }`}
-                >
-                  {card.change}
-                </span>
-                <span className="text-sm text-muted-foreground">{card.description}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
+      {/* Deepfakes Detected Card */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground">Deepfakes Detected</span>
+              <span className="text-2xl font-semibold text-foreground">
+                {data.deepfakes_detected.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+              <Shield className="h-5 w-5 text-primary" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-danger" />
+            <span className="text-sm font-medium text-danger">{data.detection_rate_pct}%</span>
+            <span className="text-sm text-muted-foreground">Detection rate</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Detection by Type Card */}
       <Card className="bg-card border-border">

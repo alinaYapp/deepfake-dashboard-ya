@@ -136,7 +136,8 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
             <thead className="bg-secondary/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Period</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Detected</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total Checks</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Deepfakes</th>
               </tr>
             </thead>
             <tbody>
@@ -146,7 +147,12 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
                   className={index % 2 === 0 ? "bg-card" : "bg-secondary/20"}
                 >
                   <td className="px-4 py-3 text-foreground">{row.date}</td>
-                  <td className="px-4 py-3 text-right text-foreground">{row.count}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">
+                    {row.total_checks?.toLocaleString() ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right text-foreground">
+                    {row.deepfakes?.toLocaleString() ?? row.count}
+                  </td>
                 </tr>
               ))}
             </tbody>

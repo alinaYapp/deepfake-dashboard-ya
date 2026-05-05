@@ -12,6 +12,8 @@ export interface StatisticsResponse {
 export interface DetectionTrendPoint {
   date: string
   count: number
+  total_checks?: number
+  deepfakes?: number
 }
 
 export interface DetectionByType {

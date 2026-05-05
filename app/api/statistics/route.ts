@@ -51,13 +51,17 @@ function generateMockData(from: string, to: string): StatisticsResponse {
   const binSize = isWeeklyBinning ? 7 : 1
   const numBins = Math.ceil(daysDiff / binSize)
   
-  const detection_trend: { date: string; count: number }[] = []
+  const detection_trend: { date: string; count: number; total_checks: number; deepfakes: number }[] = []
   for (let i = 0; i < numBins; i++) {
     const date = new Date(fromDate)
     date.setDate(date.getDate() + i * binSize)
+    const total_checks_point = Math.floor(Math.random() * 5000) + 1000
+    const deepfakes_point = Math.floor(total_checks_point * (Math.random() * 0.02 + 0.005))
     detection_trend.push({
       date: date.toISOString().split("T")[0],
-      count: Math.floor(Math.random() * 50) + 10,
+      count: deepfakes_point,
+      total_checks: total_checks_point,
+      deepfakes: deepfakes_point,
     })
   }
 
