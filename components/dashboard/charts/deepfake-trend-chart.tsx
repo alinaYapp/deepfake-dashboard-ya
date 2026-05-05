@@ -14,7 +14,7 @@ interface DeepfakeTrendChartProps {
   isLoading?: boolean
 }
 
-const ROWS_PER_PAGE = 10
+const ROWS_PER_PAGE = 6
 
 function formatWeekRange(startDate: Date): string {
   const endDate = new Date(startDate)
@@ -26,9 +26,9 @@ function formatWeekRange(startDate: Date): string {
   const endDay = endDate.getDate()
 
   if (startMonth === endMonth) {
-    return `${startMonth} ${startDay} – ${endDay}`
+    return `${startMonth} ${startDay}–${endDay}`
   }
-  return `${startMonth} ${startDay} – ${endMonth} ${endDay}`
+  return `${startMonth} ${startDay}–${endMonth} ${endDay}`
 }
 
 export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = false }: DeepfakeTrendChartProps) {
@@ -70,136 +70,168 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
     return pages
   }
 
+  // Calculate totals for table percentages
+  const totalChecks = data.reduce((sum, p) => sum + (p.total_checks || 0), 0)
+
   if (isLoading) {
     return (
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-[0.5px] border-border rounded-xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-medium">Detection Trend</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-80 w-full" />
-          <Skeleton className="h-48 w-full" />
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-[280px] w-full" />
+            <Skeleton className="h-[280px] w-full" />
+          </div>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border-[0.5px] border-border rounded-xl">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Detection Trend</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isWeeklyBinning && (
-          <div className="flex items-center gap-2 rounded-md bg-secondary/50 px-3 py-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4" />
-            <span>Data grouped by week (period &gt; 90 days)</span>
-          </div>
-        )}
-
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={formattedData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0de" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tick={{ fill: "#6b6b6b", fontSize: 12 }}
-                axisLine={{ stroke: "#e0e0de" }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "#6b6b6b", fontSize: 12 }}
-                axisLine={{ stroke: "#e0e0de" }}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e0e0de",
-                  borderRadius: "8px",
-                  color: "#1a1a1a",
-                }}
-                labelStyle={{ color: "#6b6b6b" }}
-              />
-              <Bar
-                dataKey="count"
-                fill="#378ADD"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Paginated Table */}
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Period</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Checks</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Deepfakes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedData.map((row, index) => (
-                <tr
-                  key={row.originalDate}
-                  className={index !== paginatedData.length - 1 ? "border-b border-border" : ""}
-                >
-                  <td className="px-4 py-3 text-sm text-foreground">{row.date}</td>
-                  <td className="px-4 py-3 text-right text-sm text-muted-foreground">
-                    {row.total_checks?.toLocaleString() ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm text-foreground">
-                    {row.deepfakes?.toLocaleString() ?? row.count}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1 border-t border-border bg-secondary/30 px-4 py-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {getPageNumbers().map((page, i) =>
-                typeof page === "number" ? (
-                  <Button
-                    key={i}
-                    variant={currentPage === page ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                ) : (
-                  <span key={i} className="px-2 text-muted-foreground">
-                    {page}
-                  </span>
-                )
-              )}
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-medium">Detection Trend</CardTitle>
+          {isWeeklyBinning && (
+            <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+              <Info className="h-3.5 w-3.5" />
+              <span>Data grouped by week (period &gt; 90 days)</span>
             </div>
           )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+          {/* Left: Bar Chart */}
+          <div className="h-[280px] pr-0 lg:pr-4 lg:border-r lg:border-border/50">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={formattedData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0de" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fill: "#6b6b6b", fontSize: 11 }}
+                  axisLine={{ stroke: "#e0e0de" }}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fill: "#6b6b6b", fontSize: 11 }}
+                  axisLine={{ stroke: "#e0e0de" }}
+                  tickLine={false}
+                  width={40}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e0e0de",
+                    borderRadius: "8px",
+                    color: "#1a1a1a",
+                    fontSize: "12px",
+                  }}
+                  labelStyle={{ color: "#6b6b6b" }}
+                  formatter={(value: number) => [value, "Deepfakes"]}
+                />
+                <Bar
+                  dataKey="count"
+                  fill="#378ADD"
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={40}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Right: Data Table */}
+          <div className="pl-0 lg:pl-4 pt-4 lg:pt-0">
+            <div className="flex flex-col h-[280px]">
+              {/* Table */}
+              <div className="flex-1 overflow-hidden">
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="pb-2.5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Period
+                      </th>
+                      <th className="pb-2.5 text-right text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Checks
+                      </th>
+                      <th className="pb-2.5 text-right text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Deepfakes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((row, index) => {
+                      const rowChecks = row.total_checks || 0
+                      const rowDeepfakes = row.deepfakes ?? row.count
+                      const pctOfTotal = rowChecks > 0 ? ((rowDeepfakes / rowChecks) * 100).toFixed(1) : "0.0"
+                      
+                      return (
+                        <tr
+                          key={row.originalDate}
+                          className={index !== paginatedData.length - 1 ? "border-b border-border/50" : ""}
+                        >
+                          <td className="py-2 text-foreground">{row.date}</td>
+                          <td className="py-2 text-right text-muted-foreground">
+                            {rowChecks.toLocaleString()}
+                          </td>
+                          <td className="py-2 text-right">
+                            <span className="text-foreground">{rowDeepfakes}</span>
+                            <span className="ml-1.5 text-muted-foreground">{pctOfTotal}%</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1 pt-3 border-t border-border/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {getPageNumbers().map((page, i) =>
+                    typeof page === "number" ? (
+                      <Button
+                        key={i}
+                        variant={currentPage === page ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="h-7 w-7 p-0 text-xs"
+                      >
+                        {page}
+                      </Button>
+                    ) : (
+                      <span key={i} className="px-1 text-muted-foreground text-xs">
+                        {page}
+                      </span>
+                    )
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-7 w-7 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

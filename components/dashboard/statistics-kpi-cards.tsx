@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Activity, AlertCircle } from "lucide-react"
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Pencil } from "lucide-react"
 import type { StatisticsResponse } from "@/lib/statistics-types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
@@ -28,23 +28,56 @@ const TYPE_LABELS: Record<string, string> = {
 export function StatisticsKPICards({ data, isLoading }: StatisticsKPICardsProps) {
   if (isLoading || !data) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="bg-card border-border">
+      <div className="space-y-4">
+        {/* Row 1 skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i} className="bg-card border-[0.5px] border-border">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-7 w-28" />
+                  </div>
+                  <Skeleton className="h-7 w-7 rounded-lg" />
+                </div>
+                <div className="mt-3">
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {/* Row 2 skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.7fr]">
+          <Card className="bg-card border-[0.5px] border-border">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-7 w-16" />
                 </div>
-                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="h-7 w-7 rounded-lg" />
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <Skeleton className="h-4 w-32" />
+              <div className="mt-3">
+                <Skeleton className="h-4 w-28" />
               </div>
             </CardContent>
           </Card>
-        ))}
+          <Card className="bg-card border-[0.5px] border-border">
+            <CardContent className="p-5">
+              <Skeleton className="h-3 w-28 mb-3" />
+              <div className="flex items-center gap-6">
+                <Skeleton className="h-[110px] w-[110px] rounded-full" />
+                <div className="flex flex-col gap-2.5 flex-1">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-full" />
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -61,125 +94,159 @@ export function StatisticsKPICards({ data, isLoading }: StatisticsKPICardsProps)
   const totalByType = typeData.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      {/* Total Checks Card */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Checks</span>
-              <span className="text-2xl font-semibold text-foreground">
-                {data.total_checks.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Activity className="h-4 w-4 text-primary" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5">
-            {data.total_checks_change_pct >= 0 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-success" />
-            ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-danger" />
-            )}
-            <span
-              className={`text-xs font-medium ${
-                data.total_checks_change_pct >= 0 ? "text-success" : "text-danger"
-              }`}
-            >
-              {data.total_checks_change_pct >= 0 ? "+" : ""}
-              {data.total_checks_change_pct}%
-            </span>
-            <span className="text-xs text-muted-foreground">vs previous period</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Deepfakes Detected Card */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deepfakes Detected</span>
-              <span className="text-2xl font-semibold text-foreground">
-                {data.deepfakes_detected.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-danger/10">
-              <AlertCircle className="h-4 w-4 text-danger" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5">
-            <TrendingDown className="h-3.5 w-3.5 text-danger" />
-            <span className="text-xs font-medium text-danger">{data.detection_rate_pct}%</span>
-            <span className="text-xs text-muted-foreground">Detection rate</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Detection by Type Card with Donut Chart */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Detection by Type</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Donut Chart */}
-            <div className="relative h-[90px] w-[90px] shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={28}
-                    outerRadius={42}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {typeData.map((entry) => (
-                      <Cell key={entry.key} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #e0e0de",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number, name: string) => [
-                      `${value} (${totalByType > 0 ? ((value / totalByType) * 100).toFixed(1) : 0}%)`,
-                      name,
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              {/* Center label */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-sm font-semibold text-foreground">{totalByType}</span>
-                <span className="text-[10px] text-muted-foreground">total</span>
+    <div className="space-y-4">
+      {/* Row 1: Total Checks + Deepfakes Detected (1fr 1fr) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Total Checks */}
+        <Card className="bg-card border-[0.5px] border-border rounded-xl">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Total Checks
+                </span>
+                <span className="text-[26px] font-semibold text-foreground leading-tight">
+                  {data.total_checks.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                <Activity className="h-4 w-4 text-primary" />
               </div>
             </div>
-
-            {/* Legend */}
-            <div className="flex flex-col gap-1.5 min-w-0">
-              {typeData.map((item) => (
-                <div key={item.key} className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="truncate text-xs text-muted-foreground">{item.name}</span>
-                  <span className="ml-auto text-xs font-medium text-foreground">
-                    {totalByType > 0 ? ((item.value / totalByType) * 100).toFixed(0) : 0}%
-                  </span>
-                </div>
-              ))}
+            <div className="mt-2 flex items-center gap-1.5">
+              {data.total_checks_change_pct >= 0 ? (
+                <TrendingUp className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5 text-danger" />
+              )}
+              <span
+                className={`text-[13px] font-medium ${
+                  data.total_checks_change_pct >= 0 ? "text-success" : "text-danger"
+                }`}
+              >
+                {data.total_checks_change_pct >= 0 ? "+" : ""}
+                {data.total_checks_change_pct}%
+              </span>
+              <span className="text-[13px] text-muted-foreground">vs previous period</span>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Deepfakes Detected */}
+        <Card className="bg-card border-[0.5px] border-border rounded-xl">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Deepfakes Detected
+                </span>
+                <span className="text-[26px] font-semibold text-foreground leading-tight">
+                  {data.deepfakes_detected.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-danger/10">
+                <AlertCircle className="h-4 w-4 text-danger" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <TrendingDown className="h-3.5 w-3.5 text-danger" />
+              <span className="text-[13px] font-medium text-danger">{data.detection_rate_pct}%</span>
+              <span className="text-[13px] text-muted-foreground">Detection rate</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Corrected Verdicts (1fr) + Detection by Type (1.7fr) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.7fr]">
+        {/* Corrected Verdicts */}
+        <Card className="bg-card border-[0.5px] border-border rounded-xl">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  Corrected Verdicts
+                </span>
+                <span className="text-[26px] font-semibold text-foreground leading-tight">
+                  {data.corrected_verdicts.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
+                <Pencil className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[13px] text-muted-foreground">
+                {data.correction_rate_pct}% Correction rate
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Detection by Type with Donut Chart */}
+        <Card className="bg-card border-[0.5px] border-border rounded-xl">
+          <CardContent className="p-5">
+            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+              Detection by Type
+            </span>
+            <div className="mt-3 flex items-center gap-6">
+              {/* Donut Chart - 110x110px, 68% cutout */}
+              <div className="relative h-[110px] w-[110px] shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={typeData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={37}
+                      outerRadius={55}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {typeData.map((entry) => (
+                        <Cell key={entry.key} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #e0e0de",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value: number, name: string) => [
+                        `${value} (${totalByType > 0 ? ((value / totalByType) * 100).toFixed(1) : 0}%)`,
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-base font-semibold text-foreground">{totalByType}</span>
+                  <span className="text-[10px] text-muted-foreground">total</span>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-col gap-2 min-w-0 flex-1">
+                {typeData.map((item) => (
+                  <div key={item.key} className="flex items-center gap-2.5">
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-[13px] text-muted-foreground">{item.name}</span>
+                    <span className="ml-auto text-[13px] font-medium text-foreground">
+                      {totalByType > 0 ? ((item.value / totalByType) * 100).toFixed(0) : 0}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
