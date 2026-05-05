@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react"
 import type { DateRange } from "react-day-picker"
 import { StatisticsKPICards } from "@/components/dashboard/statistics-kpi-cards"
 import { DeepfakeTrendChart } from "@/components/dashboard/charts/deepfake-trend-chart"
-import { DeepfakeTypeChart } from "@/components/dashboard/charts/deepfake-type-chart"
 import { CasesTable } from "@/components/dashboard/cases-table"
 import { CaseDrawer } from "@/components/dashboard/case-drawer"
 import { DateRangePicker, type PresetKey } from "@/components/dashboard/date-range-picker"
@@ -88,21 +87,11 @@ export function OverviewTab() {
 
       <StatisticsKPICards data={statistics} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-3">
-          <DeepfakeTrendChart
-            data={statistics?.detection_trend || []}
-            isWeeklyBinning={isWeeklyBinning}
-            isLoading={isLoading}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <DeepfakeTypeChart
-            data={statistics?.detection_by_type || null}
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
+      <DeepfakeTrendChart
+        data={statistics?.detection_trend || []}
+        isWeeklyBinning={isWeeklyBinning}
+        isLoading={isLoading}
+      />
 
       <CasesTable cases={cases} onViewCase={handleViewCase} onUpdateCase={handleUpdateCase} />
 

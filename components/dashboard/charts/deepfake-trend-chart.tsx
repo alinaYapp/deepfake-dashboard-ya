@@ -55,7 +55,7 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
           <CardTitle className="text-base font-medium">Detection Trend</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-80 w-full" />
           <Skeleton className="h-48 w-full" />
         </CardContent>
       </Card>
@@ -75,7 +75,7 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
           </div>
         )}
 
-        <div className="h-72">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={formattedData}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" />
