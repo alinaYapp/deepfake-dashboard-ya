@@ -16,14 +16,36 @@ interface DeepfakeTrendChartProps {
 
 const ROWS_PER_PAGE = 10
 
+function formatWeekRange(startDate: Date): string {
+  const endDate = new Date(startDate)
+  endDate.setDate(endDate.getDate() + 6)
+
+  const startMonth = startDate.toLocaleDateString("en-US", { month: "short" })
+  const endMonth = endDate.toLocaleDateString("en-US", { month: "short" })
+  const startDay = startDate.getDate()
+  const endDay = endDate.getDate()
+
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay} – ${endDay}`
+  }
+  return `${startMonth} ${startDay} – ${endMonth} ${endDay}`
+}
+
 export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = false }: DeepfakeTrendChartProps) {
   const [currentPage, setCurrentPage] = useState(1)
   
-  const formattedData = data.map((point) => ({
-    ...point,
-    date: new Date(point.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    originalDate: point.date,
-  }))
+  const formattedData = data.map((point) => {
+    const dateObj = new Date(point.date)
+    const label = isWeeklyBinning
+      ? formatWeekRange(dateObj)
+      : dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    
+    return {
+      ...point,
+      date: label,
+      originalDate: point.date,
+    }
+  })
 
   // Pagination for table
   const totalPages = Math.ceil(data.length / ROWS_PER_PAGE)
@@ -114,9 +136,7 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
             <thead className="bg-secondary/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Period</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Checks</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Detected</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Rate</th>
               </tr>
             </thead>
             <tbody>
@@ -126,9 +146,7 @@ export function DeepfakeTrendChart({ data, isWeeklyBinning = false, isLoading = 
                   className={index % 2 === 0 ? "bg-card" : "bg-secondary/20"}
                 >
                   <td className="px-4 py-3 text-foreground">{row.date}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">—</td>
                   <td className="px-4 py-3 text-right text-foreground">{row.count}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">—</td>
                 </tr>
               ))}
             </tbody>
