@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import type { DateRange } from "react-day-picker"
-import { KPICards } from "@/components/dashboard/kpi-cards"
+import { StatisticsKPICards } from "@/components/dashboard/statistics-kpi-cards"
 import { DeepfakeTrendChart } from "@/components/dashboard/charts/deepfake-trend-chart"
 import { DeepfakeTypeChart } from "@/components/dashboard/charts/deepfake-type-chart"
 import { CasesTable } from "@/components/dashboard/cases-table"
 import { CaseDrawer } from "@/components/dashboard/case-drawer"
 import { DateRangePicker, type PresetKey } from "@/components/dashboard/date-range-picker"
-import { mockKPIs, mockTrends, mockDistribution, mockCases, type Case, type KPIData } from "@/lib/mock-data"
+import { mockCases, type Case } from "@/lib/mock-data"
+import type { StatisticsResponse } from "@/lib/statistics-types"
 
 export function OverviewTab() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null)
@@ -16,6 +17,9 @@ export function OverviewTab() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [activePreset, setActivePreset] = useState<PresetKey>("1y")
   const [cases, setCases] = useState<Case[]>(mockCases)
+  
+  const [statistics, setStatistics] = useState<StatisticsResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Initialize date range on client only to avoid hydration mismatch
   useEffect(() => {
@@ -23,6 +27,31 @@ export function OverviewTab() {
     const from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
     setDateRange({ from, to: now })
   }, [])
+
+  // Fetch statistics when date range changes
+  useEffect(() => {
+    if (!dateRange?.from || !dateRange?.to) return
+
+    const fetchStatistics = async () => {
+      setIsLoading(true)
+      try {
+        const from = dateRange.from!.toISOString().split("T")[0]
+        const to = dateRange.to!.toISOString().split("T")[0]
+        
+        const response = await fetch(`/api/statistics?from=${from}&to=${to}`)
+        if (response.ok) {
+          const data: StatisticsResponse = await response.json()
+          setStatistics(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch statistics:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStatistics()
+  }, [dateRange])
 
   const handleViewCase = (caseData: Case) => {
     setSelectedCase(caseData)
@@ -33,41 +62,14 @@ export function OverviewTab() {
     setCases((prev) => prev.map((c) => (c.id === updatedCase.id ? updatedCase : c)))
   }, [])
 
-  const filteredTrends = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return mockTrends
-    return mockTrends.filter((point) => {
-      const d = new Date(point.date)
-      return d >= dateRange.from! && d <= dateRange.to!
-    })
-  }, [dateRange])
-
-  const filteredKPIs: KPIData = useMemo(() => {
-    if (!filteredTrends.length) return mockKPIs
-    const totalChecks = filteredTrends.reduce((sum, p) => sum + p.total, 0)
-    const deepfakeCount = filteredTrends.reduce((sum, p) => sum + p.deepfakes, 0)
-    const deepfakeRate = totalChecks > 0 ? Number(((deepfakeCount / totalChecks) * 100).toFixed(2)) : 0
-    const ratio = filteredTrends.length / (mockTrends.length || 1)
-    const correctedVerdicts = Math.round(mockKPIs.correctedVerdicts * ratio)
-    const correctionRate = totalChecks > 0 ? Number(((correctedVerdicts / totalChecks) * 100).toFixed(2)) : 0
-    return {
-      ...mockKPIs,
-      totalChecks,
-      deepfakeCount,
-      deepfakeRate,
-      correctedVerdicts,
-      correctionRate,
-    }
-  }, [filteredTrends])
-
-  const filteredDistribution = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return mockDistribution
-    const ratio = filteredTrends.length / (mockTrends.length || 1)
-    return {
-      selfie_liveness: Math.round(mockDistribution.selfie_liveness * ratio),
-      document_id: Math.round(mockDistribution.document_id * ratio),
-      video: Math.round(mockDistribution.video * ratio),
-    }
-  }, [dateRange, filteredTrends.length])
+  // Calculate if we're using weekly binning (period > 90 days)
+  const isWeeklyBinning = (() => {
+    if (!dateRange?.from || !dateRange?.to) return false
+    const daysDiff = Math.ceil(
+      (dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)
+    )
+    return daysDiff > 90
+  })()
 
   return (
     <div className="space-y-6">
@@ -84,14 +86,21 @@ export function OverviewTab() {
         />
       </div>
 
-      <KPICards data={filteredKPIs} />
+      <StatisticsKPICards data={statistics} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <DeepfakeTrendChart data={filteredTrends} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <div className="lg:col-span-3">
+          <DeepfakeTrendChart
+            data={statistics?.detection_trend || []}
+            isWeeklyBinning={isWeeklyBinning}
+            isLoading={isLoading}
+          />
         </div>
-        <div>
-          <DeepfakeTypeChart data={filteredDistribution} />
+        <div className="lg:col-span-1">
+          <DeepfakeTypeChart
+            data={statistics?.detection_by_type || null}
+            isLoading={isLoading}
+          />
         </div>
       </div>
 
